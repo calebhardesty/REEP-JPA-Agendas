@@ -1,0 +1,1437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>REEP JPA · Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --blue:#1a4a7a;--blue-mid:#2563a8;--blue-light:#dbeafe;--blue-pale:#f0f6ff;
+  --teal:#0d7377;--teal-light:#d1f5f5;
+  --gold:#b45309;--gold-light:#fef3c7;
+  --red:#b91c1c;--red-light:#fee2e2;
+  --green:#15803d;--green-light:#dcfce7;
+  --purple:#6d28d9;--purple-light:#ede9fe;
+  --gray-50:#f8f9fb;--gray-100:#f0f2f5;--gray-200:#e2e6ed;--gray-300:#cdd3dc;
+  --gray-400:#9aa3b0;--gray-500:#6b7585;--gray-600:#4a5568;--gray-700:#2d3748;--gray-900:#0f172a;
+  --sidebar-w:240px;--header-h:60px;
+  --radius:8px;--radius-lg:12px;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+  --shadow-md:0 4px 12px rgba(0,0,0,.08),0 2px 4px rgba(0,0,0,.04);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--gray-50);color:var(--gray-900);min-height:100vh;font-size:14px}
+
+/* ── SHARED LOGIN ── */
+.login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--blue)}
+.login-box{background:white;border-radius:var(--radius-lg);padding:48px 40px;width:380px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.login-logo{font-family:'DM Serif Display',serif;font-size:22px;color:var(--blue);margin-bottom:4px}
+.login-sub{font-size:12px;color:var(--gray-500);margin-bottom:6px;letter-spacing:.02em;text-transform:uppercase}
+.login-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;padding:3px 10px;border-radius:100px;margin-bottom:24px}
+.login-badge-admin{background:var(--blue-light);color:var(--blue)}
+.login-badge-member{background:var(--green-light);color:var(--green)}
+.login-box label{font-size:12px;font-weight:500;color:var(--gray-600);display:block;margin-bottom:6px}
+.login-box input[type=text],.login-box input[type=email],.login-box input[type=password]{width:100%;padding:10px 14px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:14px;font-family:inherit;outline:none;margin-bottom:16px;color:var(--gray-900);transition:border .15s}
+.login-box input:focus{border-color:var(--blue-mid)}
+.btn-login{width:100%;padding:11px;background:var(--blue);color:white;border:none;border-radius:var(--radius);font-size:14px;font-weight:500;font-family:inherit;cursor:pointer;transition:background .15s}
+.btn-login:hover{background:var(--blue-mid)}
+.btn-login-member{background:var(--green)}
+.btn-login-member:hover{background:#166534}
+.login-error{color:var(--red);font-size:12px;margin-top:10px;display:none}
+.login-switch{text-align:center;margin-top:20px;font-size:12px;color:var(--gray-400)}
+.login-switch a{color:var(--blue-mid);cursor:pointer;text-decoration:underline}
+
+/* ── ADMIN LAYOUT ── */
+#admin-app{display:none}
+.layout{display:grid;grid-template-columns:var(--sidebar-w) 1fr;min-height:100vh}
+.sidebar{background:var(--blue);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.sidebar-brand{padding:20px 20px 18px;border-bottom:1px solid rgba(255,255,255,.1);margin-bottom:8px}
+.brand-name{font-family:'DM Serif Display',serif;font-size:18px;color:white;line-height:1.2}
+.brand-tagline{font-size:11px;color:rgba(255,255,255,.5);margin-top:3px;letter-spacing:.04em;text-transform:uppercase}
+.nav-section{padding:8px 12px 4px;font-size:10px;color:rgba(255,255,255,.4);letter-spacing:.08em;text-transform:uppercase;font-weight:500}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 16px;margin:1px 8px;border-radius:var(--radius);cursor:pointer;color:rgba(255,255,255,.7);font-size:13px;transition:all .15s;user-select:none}
+.nav-item:hover{background:rgba(255,255,255,.08);color:white}
+.nav-item.active{background:rgba(255,255,255,.15);color:white;font-weight:500}
+.nav-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.nav-dot-exec{background:#60a5fa}.nav-dot-board{background:#34d399}.nav-dot-ins{background:#fbbf24}
+.nav-icon{width:16px;height:16px;opacity:.7;flex-shrink:0}
+.sidebar-footer{margin-top:auto;padding:16px 12px;border-top:1px solid rgba(255,255,255,.1)}
+.user-pill{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--radius);background:rgba(255,255,255,.08)}
+.user-avatar{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:11px;color:white;font-weight:500;flex-shrink:0}
+.user-name{font-size:12px;color:rgba(255,255,255,.8)}
+.btn-signout{font-size:11px;color:rgba(255,255,255,.4);cursor:pointer;background:none;border:none;font-family:inherit;margin-top:2px;text-align:left;padding:0}
+.btn-signout:hover{color:rgba(255,255,255,.7)}
+.main{display:flex;flex-direction:column;min-height:100vh}
+.topbar{background:white;border-bottom:1px solid var(--gray-200);padding:0 28px;height:var(--header-h);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;box-shadow:var(--shadow)}
+.topbar-left h1{font-size:16px;font-weight:500}
+.topbar-left p{font-size:12px;color:var(--gray-400)}
+.topbar-actions{display:flex;gap:8px;align-items:center}
+.page{padding:28px;flex:1}
+
+/* ── MEMBER PORTAL ── */
+#member-app{display:none;min-height:100vh;background:var(--gray-50)}
+.portal-topbar{background:var(--blue);padding:0 32px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+.portal-brand{display:flex;align-items:center;gap:14px}
+.portal-brand-name{font-family:'DM Serif Display',serif;font-size:18px;color:white}
+.portal-brand-tag{font-size:11px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.05em}
+.portal-user{display:flex;align-items:center;gap:10px}
+.portal-user-name{font-size:13px;color:rgba(255,255,255,.8)}
+.portal-signout{font-size:12px;color:rgba(255,255,255,.5);cursor:pointer;background:none;border:1px solid rgba(255,255,255,.2);border-radius:var(--radius);padding:5px 12px;font-family:inherit;transition:all .15s}
+.portal-signout:hover{color:white;border-color:rgba(255,255,255,.5)}
+.portal-nav{background:white;border-bottom:1px solid var(--gray-200);padding:0 32px;display:flex;gap:0}
+.portal-nav-item{padding:12px 18px;font-size:13px;font-weight:500;color:var(--gray-400);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;user-select:none}
+.portal-nav-item:hover{color:var(--gray-700)}
+.portal-nav-item.active{color:var(--blue);border-bottom-color:var(--blue)}
+.portal-page{max-width:900px;margin:0 auto;padding:32px 24px}
+.portal-hero{background:linear-gradient(135deg,var(--blue) 0%,var(--blue-mid) 100%);border-radius:var(--radius-lg);padding:28px 32px;margin-bottom:28px;color:white}
+.portal-hero h2{font-family:'DM Serif Display',serif;font-size:22px;margin-bottom:6px}
+.portal-hero p{font-size:13px;opacity:.75}
+.portal-group-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:100px;font-size:11px;font-weight:500;background:rgba(255,255,255,.15);margin-top:10px;margin-right:4px}
+
+/* portal cards */
+.portal-meeting-card{background:white;border:1px solid var(--gray-200);border-radius:var(--radius-lg);box-shadow:var(--shadow);margin-bottom:12px;overflow:hidden;transition:box-shadow .15s}
+.portal-meeting-card:hover{box-shadow:var(--shadow-md)}
+.pmc-header{display:flex;align-items:center;gap:14px;padding:16px 20px;border-bottom:1px solid var(--gray-100)}
+.pmc-bar{width:4px;border-radius:2px;align-self:stretch;min-height:40px}
+.pmc-info{flex:1;min-width:0}
+.pmc-title{font-size:14px;font-weight:500;color:var(--gray-900)}
+.pmc-meta{font-size:12px;color:var(--gray-400);margin-top:3px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.pmc-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pmc-body{padding:16px 20px;background:var(--gray-50)}
+/* rsvp */
+.rsvp-row{display:flex;align-items:center;gap:8px}
+.rsvp-label{font-size:12px;color:var(--gray-500);margin-right:4px}
+.rsvp-btn{padding:5px 14px;border-radius:100px;font-size:12px;font-weight:500;cursor:pointer;border:1.5px solid var(--gray-200);background:white;font-family:inherit;transition:all .15s}
+.rsvp-btn:hover{border-color:var(--gray-400)}
+.rsvp-btn.rsvp-yes.active{background:var(--green-light);border-color:#86efac;color:var(--green)}
+.rsvp-btn.rsvp-no.active{background:var(--red-light);border-color:#fca5a5;color:var(--red)}
+.rsvp-btn.rsvp-maybe.active{background:var(--gold-light);border-color:#fcd34d;color:var(--gold)}
+/* calendar */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--gray-200);border:1px solid var(--gray-200);border-radius:var(--radius-lg);overflow:hidden;margin-top:20px}
+.cal-day-name{background:var(--gray-100);padding:8px 0;text-align:center;font-size:11px;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:.05em}
+.cal-day{background:white;min-height:72px;padding:6px 8px;position:relative;cursor:default}
+.cal-day.other-month{background:var(--gray-50);opacity:.5}
+.cal-day.today{background:var(--blue-pale)}
+.cal-day-num{font-size:12px;color:var(--gray-400);font-weight:500;margin-bottom:4px}
+.cal-day.today .cal-day-num{color:var(--blue);font-weight:600}
+.cal-event{font-size:10px;font-weight:500;padding:2px 5px;border-radius:3px;margin-bottom:2px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+.cal-event-exec{background:var(--blue-light);color:var(--blue)}
+.cal-event-board{background:var(--teal-light);color:var(--teal)}
+.cal-event-ins{background:var(--gold-light);color:var(--gold)}
+.cal-nav{display:flex;align-items:center;gap:12px;margin-bottom:4px}
+.cal-month{font-size:16px;font-weight:500;flex:1}
+.cal-nav-btn{background:none;border:1px solid var(--gray-200);border-radius:var(--radius);padding:5px 10px;cursor:pointer;font-family:inherit;font-size:13px;transition:all .15s}
+.cal-nav-btn:hover{background:var(--gray-100)}
+
+/* ── SHARED COMPONENTS ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--radius);font-size:13px;font-weight:500;font-family:inherit;cursor:pointer;border:1px solid var(--gray-200);background:white;color:var(--gray-700);transition:all .15s;white-space:nowrap}
+.btn:hover{background:var(--gray-50);border-color:var(--gray-300)}
+.btn-primary{background:var(--blue);color:white;border-color:var(--blue)}
+.btn-primary:hover{background:var(--blue-mid);border-color:var(--blue-mid)}
+.btn-success{background:var(--green);color:white;border-color:var(--green)}
+.btn-success:hover{background:#166534}
+.btn-danger{background:var(--red-light);color:var(--red);border-color:#fca5a5}
+.btn-danger:hover{background:#fecaca}
+.btn-purple{background:var(--purple);color:white;border-color:var(--purple)}
+.btn-purple:hover{background:#5b21b6}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-ghost{border-color:transparent;background:transparent}
+.btn-ghost:hover{background:var(--gray-100);border-color:var(--gray-200)}
+.card{background:white;border:1px solid var(--gray-200);border-radius:var(--radius-lg);box-shadow:var(--shadow)}
+.card-header{padding:16px 20px;border-bottom:1px solid var(--gray-100);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:14px;font-weight:500;color:#1e293b}
+.card-body{padding:20px}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:100px;font-size:11px;font-weight:500}
+.badge-draft{background:var(--gold-light);color:var(--gold)}
+.badge-published{background:var(--green-light);color:var(--green)}
+.badge-exec{background:var(--blue-light);color:var(--blue)}
+.badge-board{background:var(--teal-light);color:var(--teal)}
+.badge-ins{background:var(--gold-light);color:var(--gold)}
+.badge-minutes{background:var(--purple-light);color:var(--purple)}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.stat-card{background:white;border:1px solid var(--gray-200);border-radius:var(--radius-lg);padding:18px 20px;box-shadow:var(--shadow)}
+.stat-label{font-size:11px;color:var(--gray-400);font-weight:500;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.stat-value{font-size:28px;font-weight:300;line-height:1}
+.stat-sub{font-size:12px;color:var(--gray-400);margin-top:4px}
+.meetings-grid{display:flex;flex-direction:column;gap:12px}
+.meeting-card{background:white;border:1px solid var(--gray-200);border-radius:var(--radius-lg);box-shadow:var(--shadow);overflow:hidden;transition:box-shadow .15s}
+.meeting-card:hover{box-shadow:var(--shadow-md)}
+.meeting-card-header{padding:16px 20px;display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--gray-100)}
+.meeting-group-bar{width:4px;height:40px;border-radius:2px;flex-shrink:0}
+.bar-exec{background:#3b82f6}.bar-board{background:#10b981}.bar-ins{background:#f59e0b}
+.meeting-info{flex:1;min-width:0}
+.meeting-name{font-size:14px;font-weight:500}
+.meeting-meta{font-size:12px;color:var(--gray-400);margin-top:2px;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.meeting-actions{display:flex;gap:6px;align-items:center}
+.modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.5);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{background:white;border-radius:var(--radius-lg);width:100%;max-width:680px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);transform:translateY(8px);transition:transform .2s}
+.modal-overlay.open .modal{transform:translateY(0)}
+.modal-header{padding:20px 24px 16px;border-bottom:1px solid var(--gray-100);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:white;z-index:1}
+.modal-title{font-size:16px;font-weight:500}
+.modal-body{padding:24px}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--gray-100);display:flex;justify-content:flex-end;gap:8px}
+.btn-close{background:none;border:none;cursor:pointer;color:var(--gray-400);font-size:20px;line-height:1;padding:4px}
+.btn-close:hover{color:var(--gray-700)}
+.form-group{margin-bottom:18px}
+.form-label{display:block;font-size:12px;font-weight:500;color:var(--gray-600);margin-bottom:6px}
+.form-control{width:100%;padding:9px 12px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:14px;font-family:inherit;outline:none;color:var(--gray-900);transition:border .15s;background:white}
+.form-control:focus{border-color:var(--blue-mid);box-shadow:0 0 0 3px rgba(37,99,168,.1)}
+select.form-control{cursor:pointer}
+textarea.form-control{resize:vertical;min-height:80px;line-height:1.5}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.tabs{display:flex;border-bottom:1px solid var(--gray-200);margin-bottom:24px}
+.tab{padding:10px 18px;font-size:13px;font-weight:500;color:var(--gray-400);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s}
+.tab:hover{color:var(--gray-700)}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+.section-block{border:1px solid var(--gray-200);border-radius:var(--radius-lg);margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow)}
+.section-header{background:var(--gray-50);padding:12px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--gray-200)}
+.section-header:hover{background:var(--gray-100)}
+.section-title-input{flex:1;background:transparent;border:none;outline:none;font-size:14px;font-weight:500;color:var(--gray-900);font-family:inherit}
+.section-title-input::placeholder{color:var(--gray-300)}
+.drag-handle{color:var(--gray-300);cursor:grab;font-size:16px;flex-shrink:0;user-select:none}
+.item-row{display:flex;align-items:flex-start;gap:8px;padding:6px 16px 6px 36px;border-bottom:1px solid var(--gray-100);transition:background .1s}
+.item-row:hover{background:var(--gray-50)}
+.item-num{font-size:12px;color:var(--gray-400);min-width:24px;padding-top:8px}
+.item-content{flex:1;min-width:0}
+.item-title-input{width:100%;border:none;outline:none;background:transparent;font-size:13px;color:var(--gray-900);font-family:inherit;padding:6px 0;line-height:1.4}
+.item-title-input::placeholder{color:var(--gray-300)}
+.item-desc-input{width:100%;border:none;outline:none;background:transparent;font-size:12px;color:var(--gray-500);font-family:inherit;padding:2px 0 4px;line-height:1.4;resize:none}
+.item-desc-input::placeholder{color:var(--gray-300)}
+.item-type-badge{font-size:10px;padding:2px 7px;border-radius:100px;border:1px solid var(--gray-200);color:var(--gray-500);cursor:pointer;white-space:nowrap;flex-shrink:0;margin-top:6px;background:white;font-family:inherit;font-weight:500;transition:all .15s}
+.type-action{background:var(--blue-light)!important;color:var(--blue)!important;border-color:#93c5fd!important}
+.type-info{background:var(--teal-light)!important;color:var(--teal)!important;border-color:#6ee7e7!important}
+.type-procedural{background:var(--gray-100)!important;color:var(--gray-500)!important;border-color:var(--gray-200)!important}
+.type-discussion{background:var(--gold-light)!important;color:var(--gold)!important;border-color:#fcd34d!important}
+.item-actions{display:flex;gap:2px;align-items:flex-start;padding-top:4px}
+.item-btn{background:none;border:none;cursor:pointer;color:var(--gray-300);padding:4px;border-radius:4px;font-size:13px;transition:all .12s}
+.item-btn:hover{background:var(--gray-100);color:var(--gray-600)}
+.item-attach-area{margin:2px 0 6px}
+.item-attach-chips{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px}
+.item-attach-chip{display:inline-flex;align-items:center;gap:4px;padding:2px 8px 2px 6px;background:var(--blue-pale);border:1px solid var(--blue-light);border-radius:100px;font-size:11px;color:var(--blue-mid);max-width:220px}
+.item-attach-chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item-attach-chip button{background:none;border:none;cursor:pointer;color:var(--gray-400);font-size:11px;padding:0;line-height:1;flex-shrink:0}
+.item-attach-chip button:hover{color:var(--red)}
+.btn-attach-item{background:none;border:1px dashed var(--gray-200);border-radius:var(--radius);color:var(--gray-400);font-size:11px;padding:3px 9px;cursor:pointer;font-family:inherit;transition:all .15s}
+.btn-attach-item:hover{border-color:var(--blue-mid);color:var(--blue-mid);background:var(--blue-pale)}
+.subsection-block{margin:4px 16px 4px 36px;border:1px solid var(--gray-200);border-radius:var(--radius);background:var(--gray-50)}
+.subsection-header{padding:8px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--gray-200);background:var(--gray-100);border-radius:var(--radius) var(--radius) 0 0}
+.subsection-title-input{flex:1;background:transparent;border:none;outline:none;font-size:13px;font-weight:500;color:var(--gray-700);font-family:inherit}
+.subsection-title-input::placeholder{color:var(--gray-300)}
+.add-item-row{padding:6px 16px 6px 48px;display:flex;gap:6px}
+.btn-add-inline{background:none;border:1px dashed var(--gray-200);border-radius:var(--radius);color:var(--gray-400);font-size:12px;padding:5px 12px;cursor:pointer;font-family:inherit;transition:all .15s;display:flex;align-items:center;gap:4px}
+.btn-add-inline:hover{border-color:var(--blue-mid);color:var(--blue-mid);background:var(--blue-pale)}
+.member-table{width:100%;border-collapse:collapse}
+.member-table th{font-size:11px;font-weight:500;color:var(--gray-400);text-transform:uppercase;letter-spacing:.05em;padding:10px 16px;text-align:left;border-bottom:1px solid var(--gray-200)}
+.member-table td{padding:11px 16px;border-bottom:1px solid var(--gray-100);font-size:13px;color:var(--gray-700);vertical-align:middle}
+.member-table tr:last-child td{border-bottom:none}
+.member-table tr:hover td{background:var(--gray-50)}
+.mem-av{width:30px;height:30px;border-radius:50%;background:var(--blue-light);color:var(--blue);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;margin-right:8px;flex-shrink:0}
+.rollcall-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;margin-top:12px}
+.rc-card{display:flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid var(--gray-200);border-radius:var(--radius);background:white;cursor:pointer;transition:all .15s;user-select:none}
+.rc-card:hover{border-color:var(--gray-300)}
+.rc-card.present{border-color:#86efac;background:#f0fdf4}
+.rc-card.absent{border-color:#fca5a5;background:#fff5f5}
+.rc-card.proxy{border-color:#c4b5fd;background:#f5f3ff}
+.rc-name{font-size:13px;font-weight:500;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rc-role{font-size:10px;color:var(--gray-400)}
+.rc-badge{font-size:10px;font-weight:500;padding:1px 7px;border-radius:100px;flex-shrink:0}
+.rc-badge.present{background:var(--green-light);color:var(--green)}
+.rc-badge.absent{background:var(--red-light);color:var(--red)}
+.rc-badge.proxy{background:var(--purple-light);color:var(--purple)}
+.live-badge{display:inline-flex;align-items:center;gap:6px;background:#fee2e2;color:#b91c1c;padding:4px 12px;border-radius:100px;font-size:12px;font-weight:500}
+.live-dot{width:8px;height:8px;border-radius:50%;background:#ef4444;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.live-item{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border:1px solid var(--gray-200);border-radius:var(--radius);margin-bottom:8px;background:white;transition:all .15s}
+.live-item.active-item{border-color:#3b82f6;background:var(--blue-pale);box-shadow:0 0 0 2px rgba(59,130,246,.15)}
+.live-num{font-size:12px;color:var(--gray-400);min-width:22px;padding-top:3px}
+.live-content{flex:1;min-width:0}
+.live-title{font-size:13px;font-weight:500}
+.live-type-tag{font-size:10px;color:var(--gray-400);margin-top:1px}
+.live-note-input{width:100%;border:1px solid var(--gray-200);border-radius:var(--radius);padding:6px 10px;font-size:12px;font-family:inherit;outline:none;margin-top:6px;color:var(--gray-700);resize:none}
+.live-note-input:focus{border-color:var(--blue-mid)}
+.live-saved-note{font-size:11px;color:var(--gray-500);margin-top:4px;font-style:italic}
+.minutes-editor{width:100%;border:1px solid var(--gray-200);border-radius:var(--radius);padding:16px;font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.7;color:var(--gray-900);outline:none;min-height:420px;resize:vertical}
+.minutes-editor:focus{border-color:var(--blue-mid);box-shadow:0 0 0 3px rgba(37,99,168,.1)}
+.min-toolbar{display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap}
+.min-toolbar button{padding:4px 10px;border:1px solid var(--gray-200);border-radius:var(--radius);background:white;font-size:12px;cursor:pointer;font-family:inherit;transition:all .15s}
+.min-toolbar button:hover{background:var(--gray-100)}
+.preview-agenda{font-family:'DM Sans',sans-serif}
+.preview-header{text-align:center;padding:24px 0;border-bottom:2px solid var(--blue);margin-bottom:24px}
+.preview-org{font-family:'DM Serif Display',serif;font-size:22px;color:var(--blue)}
+.preview-meeting-title{font-size:16px;font-weight:500;color:var(--gray-700);margin-top:4px}
+.preview-date{font-size:13px;color:var(--gray-500);margin-top:4px}
+.preview-section{margin-bottom:18px}
+.preview-section-title{font-size:12px;font-weight:600;color:white;background:var(--blue);padding:6px 12px;border-radius:4px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em}
+.preview-sub-title{font-size:12px;font-weight:600;color:var(--gray-600);padding:4px 0 4px 12px;border-left:3px solid var(--gray-300);margin:8px 0 4px}
+.preview-item{display:flex;gap:10px;padding:5px 12px;font-size:13px;border-bottom:1px solid var(--gray-100);align-items:flex-start}
+.preview-item-num{color:var(--gray-400);min-width:24px}
+.preview-item-text{flex:1;color:#1e293b}
+.preview-item-type{font-size:10px;color:var(--gray-400);text-transform:uppercase;margin-top:2px;white-space:nowrap}
+.preview-item-desc{font-size:12px;color:var(--gray-500);margin-top:2px}
+.preview-item-files{font-size:11px;margin-top:3px}
+.empty-state{text-align:center;padding:60px 20px;color:var(--gray-400)}
+.empty-icon{font-size:40px;margin-bottom:12px;opacity:.5}
+.empty-state h3{font-size:16px;font-weight:500;color:var(--gray-600);margin-bottom:6px}
+.empty-state p{font-size:13px;margin-bottom:20px}
+#toast{position:fixed;bottom:24px;right:24px;background:var(--gray-900);color:white;padding:12px 18px;border-radius:var(--radius);font-size:13px;z-index:9999;transform:translateY(100px);opacity:0;transition:all .25s;box-shadow:var(--shadow-md)}
+#toast.show{transform:translateY(0);opacity:1}
+code{font-size:12px;background:var(--gray-100);padding:1px 5px;border-radius:3px}
+.divider{height:1px;background:var(--gray-200);margin:20px 0}
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════
+     SHARED LOGIN SCREEN
+════════════════════════════════════════ -->
+<div id="login-screen" class="login-screen">
+  <div class="login-box">
+    <div class="login-logo">REEP JPA</div>
+    <div class="login-sub">Agenda Management System</div>
+
+    <!-- Mode toggle -->
+    <div style="display:flex;gap:8px;margin-bottom:24px">
+      <button id="mode-admin-btn" onclick="setLoginMode('admin')" style="flex:1;padding:8px;border-radius:var(--radius);border:2px solid var(--blue);background:var(--blue);color:white;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;transition:all .15s">Admin Login</button>
+      <button id="mode-member-btn" onclick="setLoginMode('member')" style="flex:1;padding:8px;border-radius:var(--radius);border:2px solid var(--gray-200);background:white;color:var(--gray-600);font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;transition:all .15s">Member Portal</button>
+    </div>
+
+    <div id="admin-login-fields">
+      <label>Username</label>
+      <input type="text" id="login-user" placeholder="Enter username" autocomplete="username">
+      <label>Password</label>
+      <input type="password" id="login-pass" placeholder="Enter password">
+      <button class="btn-login" onclick="doAdminLogin()">Sign in to Admin</button>
+    </div>
+
+    <div id="member-login-fields" style="display:none">
+      <label>Email Address</label>
+      <input type="email" id="login-email" placeholder="yourname@example.com" autocomplete="email">
+      <label>Password</label>
+      <input type="password" id="login-mpass" placeholder="Enter your password">
+      <button class="btn-login btn-login-member" onclick="doMemberLogin()">Sign in to Member Portal</button>
+    </div>
+
+    <div class="login-error" id="login-error">Incorrect credentials. Please try again.</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     ADMIN APP
+════════════════════════════════════════ -->
+<div id="admin-app">
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-name">REEP JPA</div>
+        <div class="brand-tagline">Admin Dashboard</div>
+      </div>
+      <div class="nav-section">Overview</div>
+      <div class="nav-item" id="nav-dashboard" onclick="showPage('dashboard')">
+        <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </div>
+      <div class="nav-section">Meeting Groups</div>
+      <div class="nav-item" id="nav-exec" onclick="showPage('meetings','exec')"><span class="nav-dot nav-dot-exec"></span>Executive Committee</div>
+      <div class="nav-item" id="nav-board" onclick="showPage('meetings','board')"><span class="nav-dot nav-dot-board"></span>Board of Directors</div>
+      <div class="nav-item" id="nav-ins" onclick="showPage('meetings','ins')"><span class="nav-dot nav-dot-ins"></span>Insurance Advisory</div>
+      <div class="nav-section">Manage</div>
+      <div class="nav-item" id="nav-members" onclick="showPage('members')">
+        <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Members
+      </div>
+      <div class="nav-item" id="nav-templates" onclick="showPage('templates')">
+        <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Agenda Templates
+      </div>
+      <div class="nav-item" id="nav-admin" onclick="showPage('admin')">
+        <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+        Admin Settings
+      </div>
+      <div class="sidebar-footer">
+        <div class="user-pill">
+          <div class="user-avatar" id="sidebar-avatar">AD</div>
+          <div style="flex:1;min-width:0">
+            <div class="user-name" id="sidebar-username">Admin</div>
+            <button class="btn-signout" onclick="doSignout()">Sign out</button>
+          </div>
+        </div>
+      </div>
+    </aside>
+    <main class="main">
+      <div class="topbar">
+        <div class="topbar-left">
+          <h1 id="page-title">Dashboard</h1>
+          <p id="page-sub">REEP JPA Agenda System</p>
+        </div>
+        <div class="topbar-actions" id="topbar-actions"></div>
+      </div>
+      <div class="page" id="page-content"></div>
+    </main>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     MEMBER PORTAL APP
+════════════════════════════════════════ -->
+<div id="member-app">
+  <div class="portal-topbar">
+    <div class="portal-brand">
+      <div>
+        <div class="portal-brand-name">REEP JPA</div>
+        <div class="portal-brand-tag">Member Portal</div>
+      </div>
+    </div>
+    <div class="portal-user">
+      <div style="text-align:right">
+        <div class="portal-user-name" id="portal-user-name">Member</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.4)" id="portal-user-groups"></div>
+      </div>
+      <div style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;color:white" id="portal-avatar">M</div>
+      <button class="portal-signout" onclick="doSignout()">Sign out</button>
+    </div>
+  </div>
+  <div class="portal-nav">
+    <div class="portal-nav-item active" id="pnav-home" onclick="portalShowTab('home',this)">My Meetings</div>
+    <div class="portal-nav-item" id="pnav-calendar" onclick="portalShowTab('calendar',this)">Calendar</div>
+    <div class="portal-nav-item" id="pnav-minutes" onclick="portalShowTab('minutes',this)">Minutes</div>
+  </div>
+  <div class="portal-page" id="portal-content"></div>
+</div>
+
+<!-- ════════════════════════════════════════
+     ADMIN MODALS
+════════════════════════════════════════ -->
+
+<!-- Meeting Modal -->
+<div class="modal-overlay" id="modal-meeting">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="meeting-modal-title">New Meeting</span>
+      <button class="btn-close" onclick="closeModal('modal-meeting')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Meeting Group</label><select class="form-control" id="m-group" onchange="checkTemplate()"><option value="exec">Executive Committee</option><option value="board">Board of Directors</option><option value="ins">Insurance Advisory Committee</option></select></div>
+        <div class="form-group"><label class="form-label">Meeting Type</label><select class="form-control" id="m-type"><option>Regular Meeting</option><option>Special Meeting</option><option>Emergency Meeting</option><option>Workshop</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Date</label><input type="date" class="form-control" id="m-date"></div>
+        <div class="form-group"><label class="form-label">Time</label><input type="time" class="form-control" id="m-time" value="10:00"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Location / Meeting Link</label><input type="text" class="form-control" id="m-location" placeholder="e.g. Conference Room A"></div>
+      <div class="form-group"><label class="form-label">Notes (optional)</label><textarea class="form-control" id="m-notes"></textarea></div>
+      <div id="tpl-notice" style="display:none;padding:10px 14px;background:var(--blue-pale);border:1px solid var(--blue-light);border-radius:var(--radius);font-size:13px;color:var(--blue-mid)">✅ A saved template will be applied to this meeting's agenda automatically.</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-meeting')">Cancel</button>
+      <button class="btn btn-primary" id="meeting-save-btn" onclick="saveMeeting()">Create Meeting</button>
+    </div>
+  </div>
+</div>
+
+<!-- Agenda Builder Modal -->
+<div class="modal-overlay" id="modal-agenda">
+  <div class="modal" style="max-width:860px">
+    <div class="modal-header">
+      <div><span class="modal-title" id="agenda-modal-title">Build Agenda</span><div style="font-size:12px;color:var(--gray-400);margin-top:2px" id="agenda-modal-sub"></div></div>
+      <button class="btn-close" onclick="closeModal('modal-agenda')">×</button>
+    </div>
+    <div class="modal-body" style="padding-bottom:8px">
+      <div class="tabs" id="agenda-tabs">
+        <div class="tab active" onclick="switchAgendaTab('builder',this)">Agenda Builder</div>
+        <div class="tab" onclick="switchAgendaTab('preview',this)">Preview &amp; Print</div>
+      </div>
+      <div id="tab-builder">
+        <div style="display:flex;justify-content:flex-end;margin-bottom:12px"><button class="btn btn-sm" onclick="addSection()">+ Add Section</button></div>
+        <div id="agenda-sections"></div>
+        <div class="empty-state" id="sections-empty" style="padding:30px;display:none"><div class="empty-icon">📋</div><h3>No sections yet</h3><p>Add your first agenda section</p><button class="btn btn-primary" onclick="addSection()">+ Add Section</button></div>
+      </div>
+      <div id="tab-preview" style="display:none">
+        <div style="text-align:right;margin-bottom:16px"><button class="btn btn-primary btn-sm" onclick="printPreview()">🖨 Print / Save PDF</button></div>
+        <div id="preview-content" class="preview-agenda"></div>
+      </div>
+    </div>
+    <div class="modal-footer" id="agenda-footer">
+      <button class="btn" onclick="closeModal('modal-agenda')">Close</button>
+      <button class="btn btn-primary" onclick="saveAgenda()">Save Agenda</button>
+    </div>
+  </div>
+</div>
+
+<!-- Minutes Modal -->
+<div class="modal-overlay" id="modal-minutes">
+  <div class="modal" style="max-width:860px">
+    <div class="modal-header">
+      <div><span class="modal-title" id="min-title">Meeting Minutes</span><div style="font-size:12px;color:var(--gray-400);margin-top:2px" id="min-sub"></div></div>
+      <button class="btn-close" onclick="closeModal('modal-minutes')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="tabs" id="min-tabs">
+        <div class="tab active" onclick="switchMinTab('write',this)">Write Minutes</div>
+        <div class="tab" onclick="switchMinTab('preview',this)">Preview &amp; Print</div>
+      </div>
+      <div id="min-tab-write">
+        <div class="min-toolbar">
+          <button onclick="mfmt('bold')"><strong>B</strong></button>
+          <button onclick="mfmt('italic')"><em>I</em></button>
+          <button onclick="mfmt('underline')"><u>U</u></button>
+          <button onclick="mins_insert('Motion: ')">Motion</button>
+          <button onclick="mins_insert('Second: ')">Second</button>
+          <button onclick="mins_insert('Vote: Ayes ___ / Noes ___ / Abstain ___')">Vote</button>
+          <button onclick="mins_insert('Action Item: ')">Action</button>
+        </div>
+        <div id="minutes-editor" class="minutes-editor" contenteditable="true" spellcheck="true"></div>
+      </div>
+      <div id="min-tab-preview" style="display:none">
+        <div style="text-align:right;margin-bottom:16px"><button class="btn btn-primary btn-sm" onclick="printMinutes()">🖨 Print / Save PDF</button></div>
+        <div id="minutes-preview"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-minutes')">Close</button>
+      <button class="btn btn-purple" onclick="publishMinutes()">Publish Minutes</button>
+      <button class="btn btn-primary" onclick="saveMinutes()">Save Draft</button>
+    </div>
+  </div>
+</div>
+
+<!-- Live Meeting Modal -->
+<div class="modal-overlay" id="modal-live">
+  <div class="modal" style="max-width:900px">
+    <div class="modal-header">
+      <div style="display:flex;align-items:center;gap:12px"><span class="modal-title" id="live-title">Live Meeting</span><span class="live-badge"><span class="live-dot"></span>In Session</span></div>
+      <button class="btn-close" onclick="closeModal('modal-live')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="tabs" id="live-tabs">
+        <div class="tab active" onclick="switchLiveTab('rollcall',this)">Roll Call</div>
+        <div class="tab" onclick="switchLiveTab('agenda',this)">Agenda Progress</div>
+      </div>
+      <div id="live-tab-rollcall">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:13px;color:var(--gray-500)" id="rc-summary">Click members to mark attendance</div>
+          <div style="display:flex;gap:6px"><button class="btn btn-sm btn-success" onclick="markAllPresent()">All Present</button><button class="btn btn-sm" onclick="clearRC()">Clear</button></div>
+        </div>
+        <div class="rollcall-grid" id="rc-grid"></div>
+        <div style="margin-top:12px;padding:10px 14px;background:var(--gray-50);border-radius:var(--radius);font-size:12px;color:var(--gray-500)">Click to cycle: <strong>Present</strong> → <strong>Proxy</strong> → <strong>Absent</strong> → clear</div>
+      </div>
+      <div id="live-tab-agenda" style="display:none">
+        <div style="font-size:13px;color:var(--gray-500);margin-bottom:12px">Set the active item and add notes — they flow into minutes automatically.</div>
+        <div id="live-agenda-list"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-live')">Close</button>
+      <button class="btn btn-primary" onclick="saveLiveToMinutes()">Save &amp; Open Minutes</button>
+    </div>
+  </div>
+</div>
+
+<!-- Member Modal -->
+<div class="modal-overlay" id="modal-member">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="mem-modal-title">Add Member</span>
+      <button class="btn-close" onclick="closeModal('modal-member')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">First Name</label><input type="text" class="form-control" id="mem-first" placeholder="Jane"></div>
+        <div class="form-group"><label class="form-label">Last Name</label><input type="text" class="form-control" id="mem-last" placeholder="Smith"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Email Address</label><input type="email" class="form-control" id="mem-email" placeholder="jsmith@example.com"></div>
+      <div class="form-group"><label class="form-label">Title / Organization</label><input type="text" class="form-control" id="mem-title" placeholder="Director, City of..."></div>
+      <div class="form-group">
+        <label class="form-label">Portal Password <span style="color:var(--gray-400);font-weight:400">(for member login)</span></label>
+        <input type="text" class="form-control" id="mem-password" placeholder="Set a portal password for this member">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Meeting Groups</label>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;font-weight:400"><input type="checkbox" id="mg-exec"> Executive Committee</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;font-weight:400"><input type="checkbox" id="mg-board"> Board of Directors</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;font-weight:400"><input type="checkbox" id="mg-ins"> Insurance Advisory Committee</label>
+        </div>
+      </div>
+      <div class="form-group"><label class="form-label">Role</label><select class="form-control" id="mem-role"><option>Member</option><option>Chair</option><option>Vice Chair</option><option>Secretary</option><option>Treasurer</option><option>Alternate</option><option>Staff</option></select></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-member')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveMember()">Save Member</button>
+    </div>
+  </div>
+</div>
+
+<!-- Admin User Modal -->
+<div class="modal-overlay" id="modal-admin-user">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Add Admin User</span><button class="btn-close" onclick="closeModal('modal-admin-user')">×</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Username</label><input type="text" class="form-control" id="au-user"></div>
+      <div class="form-group"><label class="form-label">Password</label><input type="password" class="form-control" id="au-pass"></div>
+      <div class="form-group"><label class="form-label">Display Name</label><input type="text" class="form-control" id="au-name"></div>
+    </div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal('modal-admin-user')">Cancel</button><button class="btn btn-primary" onclick="saveAdminUser()">Add User</button></div>
+  </div>
+</div>
+
+<!-- Portal Agenda View Modal -->
+<div class="modal-overlay" id="modal-portal-agenda">
+  <div class="modal" style="max-width:800px">
+    <div class="modal-header">
+      <div><span class="modal-title" id="pa-title">Agenda Packet</span><div style="font-size:12px;color:var(--gray-400);margin-top:2px" id="pa-sub"></div></div>
+      <button class="btn-close" onclick="closeModal('modal-portal-agenda')">×</button>
+    </div>
+    <div class="modal-body">
+      <div style="text-align:right;margin-bottom:16px"><button class="btn btn-primary btn-sm" onclick="printPortalAgenda()">🖨 Print / Save PDF</button></div>
+      <div id="pa-content" class="preview-agenda"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Portal Minutes View Modal -->
+<div class="modal-overlay" id="modal-portal-minutes">
+  <div class="modal" style="max-width:800px">
+    <div class="modal-header">
+      <div><span class="modal-title" id="pm-title">Meeting Minutes</span><div style="font-size:12px;color:var(--gray-400);margin-top:2px" id="pm-sub"></div></div>
+      <button class="btn-close" onclick="closeModal('modal-portal-minutes')">×</button>
+    </div>
+    <div class="modal-body">
+      <div style="text-align:right;margin-bottom:16px"><button class="btn btn-primary btn-sm" onclick="printPortalMinutes()">🖨 Print / Save PDF</button></div>
+      <div id="pm-content"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden inputs -->
+<input type="file" id="item-file-input" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.png,.jpg" style="display:none" onchange="handleItemFiles(this.files)">
+<input type="file" id="xl-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleExcelImport(this.files)">
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════════
+// STORAGE & CONSTANTS
+// ══════════════════════════════════════
+const S={
+  get:(k,d)=>{try{const v=localStorage.getItem(k);return v!==null?JSON.parse(v):d}catch{return d}},
+  set:(k,v)=>localStorage.setItem(k,JSON.stringify(v))
+};
+const GROUPS={exec:{name:'Executive Committee'},board:{name:'Board of Directors'},ins:{name:'Insurance Advisory Committee'}};
+const ITEM_TYPES=['Action','Information','Procedural','Discussion'];
+const TCLASS={Action:'type-action',Information:'type-info',Procedural:'type-procedural',Discussion:'type-discussion'};
+
+let meetings   = S.get('reep_meetings',[]);
+let members    = S.get('reep_members',[]);
+let adminUsers = S.get('reep_admin_users',[{username:'admin',password:'reep2024',name:'Administrator'}]);
+let templates  = S.get('reep_templates',{exec:null,board:null,ins:null});
+let rsvps      = S.get('reep_rsvps',{});  // { meetingId_memberId: 'yes'|'no'|'maybe' }
+
+let currentUser=null, currentMember=null;
+let currentPage=null, currentGroup=null;
+let editingId=null, agendaSections=[], attachItemPath=null;
+let liveRC={}, liveNotes={}, liveActive=null;
+let calYear=new Date().getFullYear(), calMonth=new Date().getMonth();
+let portalViewMeetingId=null;
+
+// ══════════════════════════════════════
+// LOGIN / AUTH
+// ══════════════════════════════════════
+let loginMode='admin';
+function setLoginMode(mode){
+  loginMode=mode;
+  document.getElementById('admin-login-fields').style.display=mode==='admin'?'block':'none';
+  document.getElementById('member-login-fields').style.display=mode==='member'?'block':'none';
+  document.getElementById('login-error').style.display='none';
+  const ab=document.getElementById('mode-admin-btn'), mb=document.getElementById('mode-member-btn');
+  if(mode==='admin'){ab.style.background='var(--blue)';ab.style.color='white';ab.style.borderColor='var(--blue)';mb.style.background='white';mb.style.color='var(--gray-600)';mb.style.borderColor='var(--gray-200)';}
+  else{mb.style.background='var(--green)';mb.style.color='white';mb.style.borderColor='var(--green)';ab.style.background='white';ab.style.color='var(--gray-600)';ab.style.borderColor='var(--gray-200)';}
+}
+
+function doAdminLogin(){
+  const u=document.getElementById('login-user').value.trim();
+  const p=document.getElementById('login-pass').value;
+  const found=adminUsers.find(a=>a.username===u&&a.password===p);
+  if(found){
+    currentUser=found; currentMember=null;
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('admin-app').style.display='block';
+    document.getElementById('member-app').style.display='none';
+    const ini=found.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    document.getElementById('sidebar-avatar').textContent=ini;
+    document.getElementById('sidebar-username').textContent=found.name;
+    showPage('dashboard');
+  } else { document.getElementById('login-error').style.display='block'; }
+}
+
+function doMemberLogin(){
+  const email=document.getElementById('login-email').value.trim().toLowerCase();
+  const pass=document.getElementById('login-mpass').value;
+  const found=members.find(m=>m.email&&m.email.toLowerCase()===email&&m.password===pass);
+  if(found){
+    currentMember=found; currentUser=null;
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('admin-app').style.display='none';
+    document.getElementById('member-app').style.display='block';
+    document.getElementById('portal-user-name').textContent=`${found.first} ${found.last}`;
+    document.getElementById('portal-avatar').textContent=initials(found.first,found.last);
+    const grpNames=(found.groups||[]).map(g=>GROUPS[g]?.name||g).join(', ');
+    document.getElementById('portal-user-groups').textContent=grpNames;
+    portalShowTab('home', document.getElementById('pnav-home'));
+  } else { document.getElementById('login-error').style.display='block'; }
+}
+
+function doSignout(){
+  currentUser=null; currentMember=null;
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('admin-app').style.display='none';
+  document.getElementById('member-app').style.display='none';
+  document.getElementById('login-user').value='';
+  document.getElementById('login-pass').value='';
+  document.getElementById('login-email').value='';
+  document.getElementById('login-mpass').value='';
+  document.getElementById('login-error').style.display='none';
+  setLoginMode('admin');
+}
+
+document.getElementById('login-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doAdminLogin()});
+document.getElementById('login-mpass').addEventListener('keydown',e=>{if(e.key==='Enter')doMemberLogin()});
+
+// ══════════════════════════════════════
+// MEMBER PORTAL
+// ══════════════════════════════════════
+function portalShowTab(tab, el){
+  document.querySelectorAll('.portal-nav-item').forEach(n=>n.classList.remove('active'));
+  el?.classList.add('active');
+  const mem=currentMember;
+  const myGroups=mem.groups||[];
+  const myMeetings=[...meetings.filter(m=>myGroups.includes(m.group)&&m.status==='published')]
+    .sort((a,b)=>new Date(a.date)-new Date(b.date));
+
+  if(tab==='home') renderPortalHome(mem, myMeetings, myGroups);
+  else if(tab==='calendar') renderPortalCalendar(myMeetings);
+  else if(tab==='minutes') renderPortalMinutes(mem, myMeetings);
+}
+
+function renderPortalHome(mem, myMeetings, myGroups){
+  const upcoming=myMeetings.filter(m=>new Date(m.date+'T23:59:00')>=new Date());
+  const past=myMeetings.filter(m=>new Date(m.date+'T23:59:00')<new Date()).reverse();
+  document.getElementById('portal-content').innerHTML=`
+    <div class="portal-hero">
+      <h2>Welcome, ${esc(mem.first)}</h2>
+      <p>Your meeting portal for REEP Joint Powers Authority</p>
+      <div style="margin-top:12px">${myGroups.map(g=>`<span class="portal-group-badge"><span style="width:7px;height:7px;border-radius:50%;background:${g==='exec'?'#60a5fa':g==='board'?'#34d399':'#fbbf24'};display:inline-block"></span>${GROUPS[g].name}</span>`).join('')}</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px">
+      <div class="stat-card"><div class="stat-label">Upcoming Meetings</div><div class="stat-value">${upcoming.length}</div><div class="stat-sub">Across your groups</div></div>
+      <div class="stat-card"><div class="stat-label">My RSVPs</div><div class="stat-value">${upcoming.filter(m=>rsvps[m.id+'_'+mem.id]).length}</div><div class="stat-sub">Responded so far</div></div>
+      <div class="stat-card"><div class="stat-label">Past Meetings</div><div class="stat-value">${past.length}</div><div class="stat-sub">Minutes available</div></div>
+    </div>
+
+    ${upcoming.length?`
+    <div style="margin-bottom:28px">
+      <h3 style="font-size:15px;font-weight:500;margin-bottom:14px">📅 Upcoming Meetings</h3>
+      ${upcoming.map(m=>portalMeetingCard(m,mem,true)).join('')}
+    </div>`:''}
+
+    ${past.length?`
+    <div>
+      <h3 style="font-size:15px;font-weight:500;margin-bottom:14px">🗂 Past Meetings</h3>
+      ${past.slice(0,5).map(m=>portalMeetingCard(m,mem,false)).join('')}
+    </div>`:''}
+
+    ${!myMeetings.length?`<div class="empty-state"><div class="empty-icon">📅</div><h3>No published meetings yet</h3><p>Your admin will publish meeting packets when they're ready.</p></div>`:''}`;
+}
+
+function portalMeetingCard(m,mem,showRsvp){
+  const grpColor={exec:'#3b82f6',board:'#10b981',ins:'#f59e0b'};
+  const ic=countItems(m.sections||[]);
+  const rsvpKey=m.id+'_'+mem.id;
+  const currentRsvp=rsvps[rsvpKey]||'';
+  const hasMins=m.minutesStatus==='published'&&m.minutes;
+  return `<div class="portal-meeting-card">
+    <div class="pmc-header">
+      <div class="pmc-bar" style="background:${grpColor[m.group]}"></div>
+      <div class="pmc-info">
+        <div class="pmc-title">${m.type} — ${fmtDate(m.date)}</div>
+        <div class="pmc-meta">
+          <span>📍 ${esc(m.location||'Location TBD')}</span>
+          <span>🕐 ${fmtTime(m.time)}</span>
+          <span>${GROUPS[m.group].name}</span>
+          ${ic?`<span>${ic} agenda items</span>`:''}
+        </div>
+      </div>
+      <div class="pmc-actions">
+        ${ic?`<button class="btn btn-sm btn-primary" onclick="portalViewAgenda('${m.id}')">📄 View Agenda</button>`:''}
+        ${hasMins?`<button class="btn btn-sm btn-purple" onclick="portalViewMinutes('${m.id}')">📋 Minutes</button>`:''}
+      </div>
+    </div>
+    ${showRsvp?`
+    <div class="pmc-body">
+      <div class="rsvp-row">
+        <span class="rsvp-label">Your RSVP:</span>
+        <button class="rsvp-btn rsvp-yes ${currentRsvp==='yes'?'active':''}" onclick="setRsvp('${m.id}','${mem.id}','yes',this)">✓ Attending</button>
+        <button class="rsvp-btn rsvp-maybe ${currentRsvp==='maybe'?'active':''}" onclick="setRsvp('${m.id}','${mem.id}','maybe',this)">? Tentative</button>
+        <button class="rsvp-btn rsvp-no ${currentRsvp==='no'?'active':''}" onclick="setRsvp('${m.id}','${mem.id}','no',this)">✗ Regrets</button>
+      </div>
+    </div>`:''}
+  </div>`;
+}
+
+function setRsvp(meetingId, memberId, status, btn){
+  const key=meetingId+'_'+memberId;
+  if(rsvps[key]===status){ delete rsvps[key]; }
+  else { rsvps[key]=status; }
+  S.set('reep_rsvps',rsvps);
+  // re-render just the RSVP buttons
+  const row=btn.closest('.rsvp-row');
+  const current=rsvps[key]||'';
+  row.querySelectorAll('.rsvp-btn').forEach(b=>{
+    b.classList.remove('active');
+    if((b.classList.contains('rsvp-yes')&&current==='yes')||(b.classList.contains('rsvp-maybe')&&current==='maybe')||(b.classList.contains('rsvp-no')&&current==='no'))
+      b.classList.add('active');
+  });
+  toast(current?`RSVP saved: ${current==='yes'?'Attending':current==='maybe'?'Tentative':'Regrets'}`:'RSVP cleared');
+}
+
+function portalViewAgenda(id){
+  const m=meetings.find(x=>x.id===id);if(!m)return;
+  portalViewMeetingId=id;
+  document.getElementById('pa-title').textContent=`${m.type} — ${fmtDate(m.date)}`;
+  document.getElementById('pa-sub').textContent=`${GROUPS[m.group].name}${m.location?' · '+m.location:''}`;
+  document.getElementById('pa-content').innerHTML=buildAgendaHTML(m,m.sections||[]);
+  openModal('modal-portal-agenda');
+}
+function printPortalAgenda(){
+  const m=meetings.find(x=>x.id===portalViewMeetingId);if(!m)return;
+  doPrint(buildAgendaHTML(m,m.sections||[]),'REEP JPA Agenda Packet');
+}
+
+function portalViewMinutes(id){
+  const m=meetings.find(x=>x.id===id);if(!m||!m.minutes)return;
+  portalViewMeetingId=id;
+  document.getElementById('pm-title').textContent=`Minutes — ${fmtDate(m.date)}`;
+  document.getElementById('pm-sub').textContent=GROUPS[m.group].name;
+  document.getElementById('pm-content').innerHTML=`<div style="line-height:1.7;font-size:14px">${m.minutes}</div>`;
+  openModal('modal-portal-minutes');
+}
+function printPortalMinutes(){
+  const m=meetings.find(x=>x.id===portalViewMeetingId);if(!m)return;
+  doPrint(`<div style="max-width:700px;margin:0 auto;line-height:1.7;font-size:14px">${m.minutes}</div>`,'REEP JPA Meeting Minutes');
+}
+
+// Portal Minutes tab
+function renderPortalMinutes(mem, myMeetings){
+  const withMins=myMeetings.filter(m=>m.minutesStatus==='published'&&m.minutes).reverse();
+  document.getElementById('portal-content').innerHTML=`
+    <h3 style="font-size:15px;font-weight:500;margin-bottom:20px">Published Meeting Minutes</h3>
+    ${withMins.length?withMins.map(m=>`
+      <div class="portal-meeting-card" style="margin-bottom:12px">
+        <div class="pmc-header">
+          <div class="pmc-bar" style="background:${m.group==='exec'?'#3b82f6':m.group==='board'?'#10b981':'#f59e0b'}"></div>
+          <div class="pmc-info">
+            <div class="pmc-title">${m.type} — ${fmtDate(m.date)}</div>
+            <div class="pmc-meta"><span>${GROUPS[m.group].name}</span></div>
+          </div>
+          <div class="pmc-actions">
+            <button class="btn btn-sm btn-purple" onclick="portalViewMinutes('${m.id}')">📋 View Minutes</button>
+            <button class="btn btn-sm" onclick="printMeetingMinutes('${m.id}')">🖨 Print</button>
+          </div>
+        </div>
+      </div>`).join('')
+    :`<div class="empty-state"><div class="empty-icon">📋</div><h3>No published minutes yet</h3><p>Minutes will appear here once your admin publishes them.</p></div>`}`;
+}
+
+function printMeetingMinutes(id){
+  const m=meetings.find(x=>x.id===id);if(!m||!m.minutes)return;
+  doPrint(`<div style="max-width:700px;margin:0 auto;line-height:1.7;font-size:14px">${m.minutes}</div>`,'REEP JPA Meeting Minutes');
+}
+
+// Calendar
+function renderPortalCalendar(myMeetings){
+  document.getElementById('portal-content').innerHTML=`
+    <div class="cal-nav">
+      <button class="cal-nav-btn" onclick="calNav(-1)">← Prev</button>
+      <div class="cal-month" id="cal-month-label"></div>
+      <button class="cal-nav-btn" onclick="calNav(1)">Next →</button>
+    </div>
+    <div id="cal-container"></div>
+    <div style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap">
+      <span style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--gray-500)"><span style="width:12px;height:12px;border-radius:2px;background:var(--blue-light);display:inline-block"></span>Executive Committee</span>
+      <span style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--gray-500)"><span style="width:12px;height:12px;border-radius:2px;background:var(--teal-light);display:inline-block"></span>Board of Directors</span>
+      <span style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--gray-500)"><span style="width:12px;height:12px;border-radius:2px;background:var(--gold-light);display:inline-block"></span>Insurance Advisory</span>
+    </div>`;
+  renderCalGrid(myMeetings);
+}
+
+function calNav(dir){
+  calMonth+=dir;
+  if(calMonth<0){calMonth=11;calYear--;}
+  if(calMonth>11){calMonth=0;calYear++;}
+  const mem=currentMember;
+  const myMeetings=[...meetings.filter(m=>(mem.groups||[]).includes(m.group)&&m.status==='published')];
+  renderCalGrid(myMeetings);
+}
+
+function renderCalGrid(myMeetings){
+  const label=new Date(calYear,calMonth,1).toLocaleDateString('en-US',{month:'long',year:'numeric'});
+  const lbl=document.getElementById('cal-month-label');if(lbl)lbl.textContent=label;
+  const firstDay=new Date(calYear,calMonth,1).getDay();
+  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+  const today=new Date();
+  const dayNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  let html=`<div class="cal-grid">${dayNames.map(d=>`<div class="cal-day-name">${d}</div>`).join('')}`;
+  // blank cells
+  for(let i=0;i<firstDay;i++) html+=`<div class="cal-day other-month"></div>`;
+  for(let d=1;d<=daysInMonth;d++){
+    const isToday=d===today.getDate()&&calMonth===today.getMonth()&&calYear===today.getFullYear();
+    const dayMeetings=myMeetings.filter(m=>{
+      const md=new Date(m.date+'T12:00:00');
+      return md.getDate()===d&&md.getMonth()===calMonth&&md.getFullYear()===calYear;
+    });
+    html+=`<div class="cal-day${isToday?' today':''}">
+      <div class="cal-day-num">${d}</div>
+      ${dayMeetings.map(m=>`<div class="cal-event cal-event-${m.group}" onclick="portalViewAgenda('${m.id}')" title="${esc(m.type)}">${esc(m.type.replace(' Meeting',''))}</div>`).join('')}
+    </div>`;
+  }
+  // trailing blanks
+  const total=firstDay+daysInMonth;
+  const trailing=(7-total%7)%7;
+  for(let i=0;i<trailing;i++) html+=`<div class="cal-day other-month"></div>`;
+  html+='</div>';
+  const cont=document.getElementById('cal-container');if(cont)cont.innerHTML=html;
+}
+
+// ══════════════════════════════════════
+// ADMIN NAVIGATION
+// ══════════════════════════════════════
+function showPage(page,group){
+  currentPage=page; currentGroup=group||null;
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const navId=page==='meetings'?`nav-${group}`:`nav-${page}`;
+  document.getElementById(navId)?.classList.add('active');
+  const titles={dashboard:'Dashboard',members:'Member Directory',templates:'Agenda Templates',admin:'Admin Settings'};
+  const subs={dashboard:'REEP JPA Agenda System',members:'Manage members and portal access',templates:'Build reusable templates per meeting group',admin:'Manage admin users and settings'};
+  if(page==='meetings'){document.getElementById('page-title').textContent=GROUPS[group].name;document.getElementById('page-sub').textContent='Meetings & agenda packets';}
+  else{document.getElementById('page-title').textContent=titles[page]||page;document.getElementById('page-sub').textContent=subs[page]||'';}
+  const acts=document.getElementById('topbar-actions');
+  acts.innerHTML='';
+  if(page==='meetings') acts.innerHTML=`<button class="btn btn-primary" onclick="openNewMeeting('${group}')">+ New Meeting</button>`;
+  else if(page==='members') acts.innerHTML=`<button class="btn" onclick="document.getElementById('xl-input').click()">📥 Import Excel</button><button class="btn btn-primary" onclick="openMemberModal()">+ Add Member</button>`;
+  else if(page==='admin') acts.innerHTML=`<button class="btn btn-primary" onclick="openModal('modal-admin-user')">+ Add Admin User</button>`;
+  const renders={dashboard:renderDashboard,members:renderMembers,templates:renderTemplates,admin:renderAdmin};
+  if(page==='meetings') renderMeetings(group);
+  else if(renders[page]) renders[page]();
+}
+
+// ══════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════
+function renderDashboard(){
+  const total=meetings.length,pub=meetings.filter(m=>m.status==='published').length;
+  const up=meetings.filter(m=>new Date(m.date+'T12:00:00')>=new Date()).length;
+  const recent=[...meetings].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).slice(0,5);
+  // RSVP summary for upcoming published meetings
+  const upcomingMeetings=meetings.filter(m=>m.status==='published'&&new Date(m.date+'T23:59:00')>=new Date()).sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,3);
+  document.getElementById('page-content').innerHTML=`
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">Total Meetings</div><div class="stat-value">${total}</div><div class="stat-sub">All groups</div></div>
+      <div class="stat-card"><div class="stat-label">Upcoming</div><div class="stat-value">${up}</div><div class="stat-sub">Scheduled</div></div>
+      <div class="stat-card"><div class="stat-label">Published</div><div class="stat-value">${pub}</div><div class="stat-sub">Visible to members</div></div>
+      <div class="stat-card"><div class="stat-label">Members</div><div class="stat-value">${members.length}</div><div class="stat-sub">Across all groups</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div class="card"><div class="card-header"><span class="card-title">Recent Meetings</span></div>
+        <div style="padding:0">
+          ${recent.length?recent.map(m=>`<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--gray-100);cursor:pointer" onclick="showPage('meetings','${m.group}')">
+            <div class="meeting-group-bar bar-${m.group}" style="height:32px"></div>
+            <div style="flex:1"><div style="font-size:13px;font-weight:500">${m.type} — ${fmtDate(m.date)}</div><div style="font-size:11px;color:var(--gray-400)">${GROUPS[m.group].name}</div></div>
+            <span class="badge badge-${m.status}">${m.status}</span>
+          </div>`).join(''):'<div style="padding:24px;text-align:center;color:var(--gray-400);font-size:13px">No meetings yet</div>'}
+        </div>
+      </div>
+      <div>
+        <div class="card" style="margin-bottom:16px"><div class="card-header"><span class="card-title">Upcoming RSVP Counts</span></div>
+          <div style="padding:0">
+            ${upcomingMeetings.length?upcomingMeetings.map(m=>{
+              const grpMems=members.filter(mem=>(mem.groups||[]).includes(m.group));
+              const yes=grpMems.filter(mem=>rsvps[m.id+'_'+mem.id]==='yes').length;
+              const no=grpMems.filter(mem=>rsvps[m.id+'_'+mem.id]==='no').length;
+              const maybe=grpMems.filter(mem=>rsvps[m.id+'_'+mem.id]==='maybe').length;
+              return `<div style="padding:12px 16px;border-bottom:1px solid var(--gray-100)">
+                <div style="font-size:13px;font-weight:500">${m.type} — ${fmtDate(m.date)}</div>
+                <div style="font-size:11px;color:var(--gray-400);margin-top:2px">${GROUPS[m.group].name}</div>
+                <div style="display:flex;gap:10px;margin-top:6px;font-size:12px">
+                  <span style="color:var(--green)">✓ ${yes} attending</span>
+                  <span style="color:var(--gold)">? ${maybe} tentative</span>
+                  <span style="color:var(--red)">✗ ${no} regrets</span>
+                  <span style="color:var(--gray-400)">${grpMems.length-(yes+no+maybe)} no response</span>
+                </div>
+              </div>`;
+            }).join(''):'<div style="padding:20px;text-align:center;color:var(--gray-400);font-size:13px">No upcoming published meetings</div>'}
+          </div>
+        </div>
+        <div class="card"><div class="card-header"><span class="card-title">Meeting Groups</span></div>
+          <div style="padding:0">
+            ${Object.entries(GROUPS).map(([k,g])=>{
+              const cnt=meetings.filter(m=>m.group===k).length;
+              const mc=members.filter(m=>(m.groups||[]).includes(k)).length;
+              return `<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--gray-100);cursor:pointer" onclick="showPage('meetings','${k}')">
+                <span class="nav-dot nav-dot-${k}" style="width:10px;height:10px"></span>
+                <div style="flex:1"><div style="font-size:13px;font-weight:500">${g.name}</div><div style="font-size:11px;color:var(--gray-400)">${mc} members · ${cnt} meetings</div></div>
+                <svg width="14" height="14" fill="none" stroke="var(--gray-300)" stroke-width="2" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ══════════════════════════════════════
+// MEETINGS (ADMIN)
+// ══════════════════════════════════════
+function renderMeetings(group){
+  const list=[...meetings.filter(m=>m.group===group)].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  document.getElementById('page-content').innerHTML=`<div class="meetings-grid">
+    ${list.length?list.map(m=>meetingCardHtml(m)).join(''):`<div class="empty-state"><div class="empty-icon">📅</div><h3>No meetings yet</h3><p>Create your first ${GROUPS[group].name} meeting</p><button class="btn btn-primary" onclick="openNewMeeting('${group}')">+ New Meeting</button></div>`}
+  </div>`;
+}
+
+function meetingCardHtml(m){
+  const ic=countItems(m.sections||[]);
+  const hasMins=!!(m.minutes);
+  const minsPub=m.minutesStatus==='published';
+  // RSVP summary
+  const grpMems=members.filter(mem=>(mem.groups||[]).includes(m.group));
+  const yes=grpMems.filter(mem=>rsvps[m.id+'_'+mem.id]==='yes').length;
+  const no=grpMems.filter(mem=>rsvps[m.id+'_'+mem.id]==='no').length;
+  const maybe=grpMems.filter(mem=>rsvps[m.id+'_'+mem.id]==='maybe').length;
+  const rsvpHtml=grpMems.length?`<span style="color:var(--gray-400)">RSVPs: <span style="color:var(--green)">${yes}✓</span> <span style="color:var(--gold)">${maybe}?</span> <span style="color:var(--red)">${no}✗</span></span>`:'';
+  return `<div class="meeting-card">
+    <div class="meeting-card-header">
+      <div class="meeting-group-bar bar-${m.group}"></div>
+      <div class="meeting-info">
+        <div class="meeting-name">${m.type} &mdash; ${fmtDate(m.date)}</div>
+        <div class="meeting-meta">
+          ${m.time?`<span>${fmtTime(m.time)}</span>`:''}
+          ${m.location?`<span>${esc(m.location)}</span>`:''}
+          <span>${(m.sections||[]).length} sections · ${ic} items</span>
+          ${hasMins?`<span class="badge badge-minutes">Minutes ${minsPub?'published':'draft'}</span>`:''}
+          ${rsvpHtml}
+        </div>
+      </div>
+      <div class="meeting-actions">
+        <span class="badge badge-${m.status}">${m.status}</span>
+        ${m.status==='draft'?`<button class="btn btn-sm btn-success" onclick="publishMeeting('${m.id}')">Publish</button>`:''}
+        ${m.status==='published'?`<button class="btn btn-sm" onclick="unpublishMeeting('${m.id}')">Unpublish</button>`:''}
+      </div>
+    </div>
+    <div style="padding:12px 20px;display:flex;gap:8px;flex-wrap:wrap;background:var(--gray-50);border-top:1px solid var(--gray-100)">
+      <button class="btn btn-sm" onclick="openAgendaBuilder('${m.id}')">✏️ Edit Agenda</button>
+      <button class="btn btn-sm btn-purple" onclick="openLiveMeeting('${m.id}')">🎙 Run Meeting</button>
+      <button class="btn btn-sm" onclick="openMinutes('${m.id}')">📝 ${hasMins?'Edit':'Write'} Minutes</button>
+      <button class="btn btn-sm" onclick="printMeeting('${m.id}')">🖨 Print Packet</button>
+      <button class="btn btn-sm" onclick="editMeetingDetails('${m.id}')">Edit Details</button>
+      <button class="btn btn-sm btn-danger" style="margin-left:auto" onclick="deleteMeeting('${m.id}')">Delete</button>
+    </div>
+  </div>`;
+}
+
+function countItems(sections){return(sections||[]).reduce((a,s)=>{a+=(s.items||[]).length;(s.subsections||[]).forEach(sub=>a+=(sub.items||[]).length);return a;},0);}
+function checkTemplate(){const g=document.getElementById('m-group').value;document.getElementById('tpl-notice').style.display=templates[g]?'block':'none';}
+
+function openNewMeeting(group){
+  editingId=null;
+  document.getElementById('meeting-modal-title').textContent='New Meeting';
+  document.getElementById('meeting-save-btn').textContent='Create Meeting';
+  document.getElementById('m-group').value=group||'exec';
+  document.getElementById('m-date').valueAsDate=new Date();
+  document.getElementById('m-time').value='10:00';
+  document.getElementById('m-location').value='';
+  document.getElementById('m-notes').value='';
+  document.getElementById('m-type').value='Regular Meeting';
+  document.getElementById('tpl-notice').style.display=templates[group||'exec']?'block':'none';
+  openModal('modal-meeting');
+}
+
+function editMeetingDetails(id){
+  const m=meetings.find(x=>x.id===id);if(!m)return;
+  editingId=id;
+  document.getElementById('meeting-modal-title').textContent='Edit Meeting Details';
+  document.getElementById('meeting-save-btn').textContent='Save Changes';
+  document.getElementById('m-group').value=m.group;
+  document.getElementById('m-type').value=m.type;
+  document.getElementById('m-date').value=m.date;
+  document.getElementById('m-time').value=m.time||'10:00';
+  document.getElementById('m-location').value=m.location||'';
+  document.getElementById('m-notes').value=m.notes||'';
+  document.getElementById('tpl-notice').style.display='none';
+  openModal('modal-meeting');
+}
+
+function saveMeeting(){
+  const date=document.getElementById('m-date').value;
+  if(!date){alert('Please select a meeting date.');return;}
+  if(editingId){
+    const m=meetings.find(x=>x.id===editingId);
+    if(m){m.group=document.getElementById('m-group').value;m.type=document.getElementById('m-type').value;m.date=date;m.time=document.getElementById('m-time').value;m.location=document.getElementById('m-location').value;m.notes=document.getElementById('m-notes').value;}
+    toast('Meeting updated');
+  } else {
+    const g=document.getElementById('m-group').value;
+    const tpl=templates[g];
+    meetings.push({id:uid(),group:g,type:document.getElementById('m-type').value,date,time:document.getElementById('m-time').value,location:document.getElementById('m-location').value,notes:document.getElementById('m-notes').value,status:'draft',sections:tpl?JSON.parse(JSON.stringify(tpl)):[],minutes:'',minutesStatus:'draft',rollCall:{},itemNotes:{},createdAt:new Date().toISOString()});
+    toast('Meeting created'+(tpl?' with template':''));
+  }
+  saveMeetings();closeModal('modal-meeting');
+  if(currentPage==='meetings')renderMeetings(currentGroup);else renderDashboard();
+}
+
+function deleteMeeting(id){if(!confirm('Delete this meeting?'))return;meetings=meetings.filter(m=>m.id!==id);saveMeetings();renderMeetings(currentGroup);toast('Deleted');}
+function publishMeeting(id){const m=meetings.find(x=>x.id===id);if(m){m.status='published';saveMeetings();renderMeetings(m.group);toast('Published — now visible in member portal');}}
+function unpublishMeeting(id){const m=meetings.find(x=>x.id===id);if(m){m.status='draft';saveMeetings();renderMeetings(m.group);toast('Set to draft');}}
+function saveMeetings(){S.set('reep_meetings',meetings);}
+
+// ══════════════════════════════════════
+// AGENDA BUILDER
+// ══════════════════════════════════════
+function openAgendaBuilder(id){
+  const m=meetings.find(x=>x.id===id);if(!m)return;
+  editingId=id; agendaSections=JSON.parse(JSON.stringify(m.sections||[]));
+  document.getElementById('agenda-modal-title').textContent='Build Agenda';
+  document.getElementById('agenda-modal-sub').textContent=`${GROUPS[m.group].name} · ${fmtDate(m.date)}`;
+  document.getElementById('agenda-footer').innerHTML=`<button class="btn" onclick="closeModal('modal-agenda')">Close</button><button class="btn btn-primary" onclick="saveAgenda()">Save Agenda</button>`;
+  swAgendaTab('builder');document.querySelectorAll('#agenda-tabs .tab').forEach((t,i)=>t.classList.toggle('active',i===0));
+  renderSections();openModal('modal-agenda');
+}
+function switchAgendaTab(tab,el){document.querySelectorAll('#agenda-tabs .tab').forEach(t=>t.classList.remove('active'));el?.classList.add('active');swAgendaTab(tab);if(tab==='preview')renderPreview();}
+function swAgendaTab(tab){document.getElementById('tab-builder').style.display=tab==='builder'?'block':'none';document.getElementById('tab-preview').style.display=tab==='preview'?'block':'none';}
+
+function renderSections(){
+  const cont=document.getElementById('agenda-sections'),empty=document.getElementById('sections-empty');
+  if(!agendaSections.length){cont.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  cont.innerHTML=agendaSections.map((sec,si)=>`
+    <div class="section-block">
+      <div class="section-header">
+        <span class="drag-handle">⠿</span>
+        <input class="section-title-input" placeholder="Section title" value="${esc(sec.title)}" oninput="agendaSections[${si}].title=this.value"/>
+        <div style="display:flex;gap:4px;flex-shrink:0">
+          <button class="btn btn-sm btn-ghost" onclick="addSubsection(${si})">+ Sub</button>
+          <button class="btn btn-sm btn-ghost" onclick="addItem(${si},null)">+ Item</button>
+          <button class="item-btn" onclick="removeSection(${si})">🗑</button>
+        </div>
+      </div>
+      <div>
+        ${renderItemRows(sec.items||[],si,null)}
+        ${(sec.subsections||[]).map((sub,subi)=>`
+          <div class="subsection-block">
+            <div class="subsection-header">
+              <span class="drag-handle" style="font-size:12px">⠿</span>
+              <input class="subsection-title-input" placeholder="Subsection title" value="${esc(sub.title)}" oninput="agendaSections[${si}].subsections[${subi}].title=this.value"/>
+              <div style="display:flex;gap:4px"><button class="btn btn-sm btn-ghost" onclick="addItem(${si},${subi})">+ Item</button><button class="item-btn" onclick="removeSubsection(${si},${subi})">🗑</button></div>
+            </div>
+            ${renderItemRows(sub.items||[],si,subi)}
+          </div>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function renderItemRows(items,si,subi){
+  const path=subi!==null?`agendaSections[${si}].subsections[${subi}].items`:`agendaSections[${si}].items`;
+  if(!items.length) return `<div class="add-item-row"><button class="btn-add-inline" onclick="addItem(${si},${subi})">+ Add first item</button></div>`;
+  return items.map((item,ii)=>{
+    const files=item.files||[];
+    const chips=files.length?`<div class="item-attach-chips">${files.map((f,fi)=>`<span class="item-attach-chip">📄 <span title="${esc(f.name)}">${esc(f.name.length>24?f.name.slice(0,22)+'…':f.name)}</span><button onclick="removeItemFile(${si},${subi},${ii},${fi})">✕</button></span>`).join('')}</div>`:'';
+    return `<div class="item-row">
+      <span class="item-num">${ii+1}.</span>
+      <div class="item-content">
+        <input class="item-title-input" placeholder="Item title..." value="${esc(item.title)}" oninput="${path}[${ii}].title=this.value"/>
+        <textarea class="item-desc-input" placeholder="Notes or description" rows="1" oninput="${path}[${ii}].desc=this.value;autoResize(this)">${esc(item.desc||'')}</textarea>
+        <div class="item-attach-area">${chips}<button class="btn-attach-item" onclick="openItemAttach(${si},${subi===null?'null':subi},${ii})">📎 Attach file</button></div>
+      </div>
+      <button class="item-type-badge ${TCLASS[item.type]||''}" onclick="cycleType(${si},${subi===null?'null':subi},${ii})">${item.type||'Action'}</button>
+      <div class="item-actions"><button class="item-btn" onclick="removeItem(${si},${subi===null?'null':subi},${ii})">✕</button></div>
+    </div>`;
+  }).join('')+`<div class="add-item-row"><button class="btn-add-inline" onclick="addItem(${si},${subi===null?'null':subi})">+ Add item</button></div>`;
+}
+function autoResize(el){el.style.height='auto';el.style.height=el.scrollHeight+'px';}
+function openItemAttach(si,subi,ii){attachItemPath={si,subi:subi==='null'?null:subi,ii};document.getElementById('item-file-input').value='';document.getElementById('item-file-input').click();}
+function handleItemFiles(files){
+  if(!attachItemPath)return;
+  const {si,subi,ii}=attachItemPath;
+  const item=subi!==null?agendaSections[si].subsections[subi].items[ii]:agendaSections[si].items[ii];
+  if(!item.files)item.files=[];
+  Array.from(files).forEach(f=>{const reader=new FileReader();reader.onload=e=>{item.files.push({name:f.name,size:f.size,type:f.type,data:e.target.result});renderSections();};reader.readAsDataURL(f);});
+  attachItemPath=null;
+}
+function removeItemFile(si,subi,ii,fi){const item=subi!==null&&subi!=='null'?agendaSections[si].subsections[subi].items[ii]:agendaSections[si].items[ii];item.files.splice(fi,1);renderSections();}
+function addSection(){agendaSections.push({id:uid(),title:'',items:[],subsections:[]});renderSections();}
+function removeSection(si){if((agendaSections[si].items.length||(agendaSections[si].subsections||[]).length)&&!confirm('Remove section?'))return;agendaSections.splice(si,1);renderSections();}
+function addSubsection(si){if(!agendaSections[si].subsections)agendaSections[si].subsections=[];agendaSections[si].subsections.push({id:uid(),title:'',items:[]});renderSections();}
+function removeSubsection(si,subi){agendaSections[si].subsections.splice(subi,1);renderSections();}
+function addItem(si,subi){
+  const item={id:uid(),title:'',desc:'',type:'Action',files:[]};
+  if(subi!==null&&subi!=='null')agendaSections[si].subsections[subi].items.push(item);
+  else agendaSections[si].items.push(item);
+  renderSections();
+  setTimeout(()=>{const ins=document.querySelectorAll('.item-title-input');if(ins.length)ins[ins.length-1].focus();},60);
+}
+function removeItem(si,subi,ii){if(subi!==null&&subi!=='null')agendaSections[si].subsections[subi].items.splice(ii,1);else agendaSections[si].items.splice(ii,1);renderSections();}
+function cycleType(si,subi,ii){const item=subi!==null&&subi!=='null'?agendaSections[si].subsections[subi].items[ii]:agendaSections[si].items[ii];item.type=ITEM_TYPES[(ITEM_TYPES.indexOf(item.type)+1)%ITEM_TYPES.length];renderSections();}
+function saveAgenda(){const m=meetings.find(x=>x.id===editingId);if(!m)return;m.sections=agendaSections;saveMeetings();closeModal('modal-agenda');if(currentPage==='meetings')renderMeetings(m.group);toast('Agenda saved');}
+
+// ══════════════════════════════════════
+// PREVIEW & PRINT
+// ══════════════════════════════════════
+function renderPreview(){const m=meetings.find(x=>x.id===editingId);if(!m)return;document.getElementById('preview-content').innerHTML=buildAgendaHTML(m,agendaSections);}
+function buildAgendaHTML(m,sections){
+  const grp=GROUPS[m.group];let num=1;
+  const sectHtml=(sections||[]).map(sec=>{
+    const items=(sec.items||[]).map(item=>`<div class="preview-item"><span class="preview-item-num">${num++}.</span><div class="preview-item-text">${esc(item.title)}${item.desc?`<div class="preview-item-desc">${esc(item.desc)}</div>`:''}${(item.files||[]).length?`<div class="preview-item-files">${item.files.map(f=>`<a href="${f.data}" download="${f.name}" style="color:#2563a8;margin-right:8px">📄 ${esc(f.name)}</a>`).join('')}</div>`:''}</div><span class="preview-item-type">${item.type||''}</span></div>`).join('');
+    const subs=(sec.subsections||[]).map(sub=>`<div class="preview-sub-title">${esc(sub.title)}</div>${(sub.items||[]).map(item=>`<div class="preview-item"><span class="preview-item-num">${num++}.</span><div class="preview-item-text">${esc(item.title)}${item.desc?`<div class="preview-item-desc">${esc(item.desc)}</div>`:''}${(item.files||[]).length?`<div class="preview-item-files">${item.files.map(f=>`<a href="${f.data}" download="${f.name}" style="color:#2563a8;margin-right:8px">📄 ${esc(f.name)}</a>`).join('')}</div>`:''}</div><span class="preview-item-type">${item.type||''}</span></div>`).join('')}`).join('');
+    return `<div class="preview-section"><div class="preview-section-title">${esc(sec.title)||'Untitled Section'}</div>${items}${subs}</div>`;
+  }).join('');
+  return `<div class="preview-header"><div class="preview-org">REEP Joint Powers Authority</div><div class="preview-meeting-title">${grp.name} — ${m.type}</div><div class="preview-date">${fmtDate(m.date)}${m.time?' · '+fmtTime(m.time):''}${m.location?' · '+esc(m.location):''}</div></div>${sectHtml||'<p style="text-align:center;color:var(--gray-400);font-size:13px;padding:20px">No agenda items yet</p>'}`;
+}
+function printPreview(){const m=meetings.find(x=>x.id===editingId);if(!m)return;doPrint(buildAgendaHTML(m,agendaSections),'REEP JPA Agenda Packet');}
+function printMeeting(id){const m=meetings.find(x=>x.id===id);if(!m)return;doPrint(buildAgendaHTML(m,m.sections||[]),'REEP JPA Agenda Packet');}
+function doPrint(html,title){
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>${title}</title><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Serif+Display&display=swap" rel="stylesheet"><style>body{font-family:'DM Sans',sans-serif;color:#0f172a;max-width:750px;margin:40px auto;padding:0 20px;font-size:13px;line-height:1.6}.preview-org{font-family:'DM Serif Display',serif;font-size:22px;color:#1a4a7a}.preview-header{text-align:center;padding-bottom:20px;border-bottom:2px solid #1a4a7a;margin-bottom:24px}.preview-meeting-title{font-size:15px;font-weight:500;color:#4a5568;margin-top:4px}.preview-date{font-size:12px;color:#6b7585;margin-top:4px}.preview-section{margin-bottom:16px}.preview-section-title{font-size:12px;font-weight:600;color:white;background:#1a4a7a;padding:5px 10px;border-radius:3px;margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em}.preview-sub-title{font-size:11px;font-weight:600;color:#4a5568;padding:3px 0 3px 10px;border-left:3px solid #cdd3dc;margin:6px 0 3px}.preview-item{display:flex;gap:8px;padding:4px 10px;border-bottom:1px solid #f0f2f5}.preview-item-num{color:#9aa3b0;min-width:20px}.preview-item-text{flex:1}.preview-item-desc{font-size:11px;color:#6b7585;margin-top:2px}.preview-item-type{font-size:10px;color:#9aa3b0;text-transform:uppercase;white-space:nowrap}.preview-item-files{font-size:11px;margin-top:3px}a{color:#2563a8}@media print{body{margin:0}}</style></head><body>${html}</body></html>`);
+  w.document.close();w.onload=()=>{w.focus();w.print();};
+}
+
+// ══════════════════════════════════════
+// MINUTES
+// ══════════════════════════════════════
+function openMinutes(id){
+  const m=meetings.find(x=>x.id===id);if(!m)return;
+  editingId=id;
+  document.getElementById('min-title').textContent='Meeting Minutes';
+  document.getElementById('min-sub').textContent=`${GROUPS[m.group].name} · ${fmtDate(m.date)}`;
+  document.getElementById('minutes-editor').innerHTML=m.minutes||buildMinutesTemplate(m);
+  document.querySelectorAll('#min-tabs .tab').forEach((t,i)=>t.classList.toggle('active',i===0));
+  document.getElementById('min-tab-write').style.display='block';
+  document.getElementById('min-tab-preview').style.display='none';
+  openModal('modal-minutes');
+}
+function buildMinutesTemplate(m){
+  const grp=GROUPS[m.group];let num=1;
+  const rc=m.rollCall||{};
+  const rcRows=Object.entries(rc).map(([mid,st])=>{const mem=members.find(x=>x.id===mid);return mem?`<li>${mem.first} ${mem.last} — <strong>${st}</strong></li>`:''}).join('');
+  const notes=m.itemNotes||{};
+  const sectHtml=(m.sections||[]).map(sec=>{
+    const items=(sec.items||[]).map(item=>`<p><strong>${num++}. ${esc(item.title)}</strong> [${item.type||''}]</p><p>${notes[item.id]||''}</p><p style="color:#9aa3b0;font-style:italic">_____________________</p><br>`).join('');
+    const subs=(sec.subsections||[]).map(sub=>`<h4 style="color:#4a5568;border-left:3px solid #cdd3dc;padding-left:8px">${esc(sub.title)}</h4>${(sub.items||[]).map(item=>`<p><strong>${num++}. ${esc(item.title)}</strong></p><p>${notes[item.id]||''}</p><p style="color:#9aa3b0;font-style:italic">_____________________</p><br>`).join('')}`).join('');
+    return `<h3 style="background:#1a4a7a;color:white;padding:5px 12px;border-radius:3px;margin:14px 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:.04em">${esc(sec.title)||'Section'}</h3>${items}${subs}`;
+  }).join('');
+  return `<h2 style="text-align:center;font-family:Georgia,serif;color:#1a4a7a;margin-bottom:4px">REEP Joint Powers Authority</h2><h3 style="text-align:center;font-weight:500;color:#4a5568">${grp.name} — ${m.type}</h3><p style="text-align:center;color:#6b7585;font-size:13px">${fmtDate(m.date)}${m.time?' · '+fmtTime(m.time):''}${m.location?' · '+esc(m.location):''}</p><hr style="margin:16px 0;border:none;border-top:1px solid #e2e6ed"><h3>Roll Call</h3><ul style="padding-left:20px;font-size:13px">${rcRows||'<li>Not recorded</li>'}</ul><br>${sectHtml}<hr style="margin:16px 0;border:none;border-top:1px solid #e2e6ed"><p><strong>Adjournment:</strong> The meeting was adjourned at ________.</p><br><p>Respectfully submitted,</p><br><p>________________________________<br><small>Secretary, ${grp.name}</small></p>`;
+}
+function switchMinTab(tab,el){document.querySelectorAll('#min-tabs .tab').forEach(t=>t.classList.remove('active'));el?.classList.add('active');document.getElementById('min-tab-write').style.display=tab==='write'?'block':'none';document.getElementById('min-tab-preview').style.display=tab==='preview'?'block':'none';if(tab==='preview')document.getElementById('minutes-preview').innerHTML=document.getElementById('minutes-editor').innerHTML;}
+function mfmt(cmd){document.execCommand(cmd,false,null);document.getElementById('minutes-editor').focus();}
+function mins_insert(text){document.getElementById('minutes-editor').focus();document.execCommand('insertText',false,'\n'+text);}
+function saveMinutes(){const m=meetings.find(x=>x.id===editingId);if(!m)return;m.minutes=document.getElementById('minutes-editor').innerHTML;m.minutesStatus='draft';saveMeetings();closeModal('modal-minutes');if(currentPage==='meetings')renderMeetings(m.group);toast('Minutes saved');}
+function publishMinutes(){const m=meetings.find(x=>x.id===editingId);if(!m)return;m.minutes=document.getElementById('minutes-editor').innerHTML;m.minutesStatus='published';saveMeetings();closeModal('modal-minutes');if(currentPage==='meetings')renderMeetings(m.group);toast('Minutes published — visible in member portal');}
+function printMinutes(){doPrint(`<div style="max-width:700px;margin:0 auto">${document.getElementById('minutes-editor').innerHTML}</div>`,'REEP JPA Meeting Minutes');}
+
+// ══════════════════════════════════════
+// LIVE MEETING
+// ══════════════════════════════════════
+function openLiveMeeting(id){
+  const m=meetings.find(x=>x.id===id);if(!m)return;
+  editingId=id;liveRC=m.rollCall?JSON.parse(JSON.stringify(m.rollCall)):{};liveNotes=m.itemNotes?JSON.parse(JSON.stringify(m.itemNotes)):{};liveActive=null;
+  document.getElementById('live-title').textContent=`${GROUPS[m.group].name} — ${fmtDate(m.date)}`;
+  document.querySelectorAll('#live-tabs .tab').forEach((t,i)=>t.classList.toggle('active',i===0));
+  document.getElementById('live-tab-rollcall').style.display='block';document.getElementById('live-tab-agenda').style.display='none';
+  renderRC(m);openModal('modal-live');
+}
+function switchLiveTab(tab,el){document.querySelectorAll('#live-tabs .tab').forEach(t=>t.classList.remove('active'));el?.classList.add('active');document.getElementById('live-tab-rollcall').style.display=tab==='rollcall'?'block':'none';document.getElementById('live-tab-agenda').style.display=tab==='agenda'?'block':'none';if(tab==='agenda'){const m=meetings.find(x=>x.id===editingId);if(m)renderLiveAgenda(m);}}
+function renderRC(m){
+  const grpMems=members.filter(mem=>(mem.groups||[]).includes(m.group));
+  const grid=document.getElementById('rc-grid');
+  if(!grpMems.length){grid.innerHTML='<div style="color:var(--gray-400);font-size:13px;padding:20px;grid-column:1/-1">No members in this group.</div>';return;}
+  grid.innerHTML=grpMems.map(mem=>{const st=liveRC[mem.id]||'';return `<div class="rc-card ${st}" onclick="cycleRC('${mem.id}','${m.group}')"><div class="mem-av" style="width:32px;height:32px;font-size:12px;flex-shrink:0">${initials(mem.first,mem.last)}</div><div style="flex:1;min-width:0"><div class="rc-name">${esc(mem.first)} ${esc(mem.last)}</div><div class="rc-role">${esc(mem.role||'Member')}</div></div>${st?`<span class="rc-badge ${st}">${st}</span>`:''}</div>`;}).join('');
+  updateRCSummary(m);
+}
+function cycleRC(memberId){const order=['present','proxy','absent',''];const cur=liveRC[memberId]||'';const next=order[(order.indexOf(cur)+1)%order.length];if(!next)delete liveRC[memberId];else liveRC[memberId]=next;const m=meetings.find(x=>x.id===editingId);if(m)renderRC(m);}
+function updateRCSummary(m){const grpMems=members.filter(mem=>(mem.groups||[]).includes(m.group));const p=Object.values(liveRC).filter(v=>v==='present').length,pr=Object.values(liveRC).filter(v=>v==='proxy').length,ab=Object.values(liveRC).filter(v=>v==='absent').length;document.getElementById('rc-summary').textContent=`${p} present · ${pr} proxy · ${ab} absent · ${grpMems.length-(p+pr+ab)} not marked`;}
+function markAllPresent(){const m=meetings.find(x=>x.id===editingId);if(!m)return;members.filter(mem=>(mem.groups||[]).includes(m.group)).forEach(mem=>{liveRC[mem.id]='present';});renderRC(m);}
+function clearRC(){liveRC={};const m=meetings.find(x=>x.id===editingId);if(m)renderRC(m);}
+function renderLiveAgenda(m){
+  const cont=document.getElementById('live-agenda-list');let num=1;const rows=[];
+  (m.sections||[]).forEach(sec=>{
+    rows.push(`<div style="font-size:12px;font-weight:600;color:white;background:var(--blue);padding:5px 12px;border-radius:4px;margin:12px 0 6px;text-transform:uppercase;letter-spacing:.04em">${esc(sec.title)||'Section'}</div>`);
+    (sec.items||[]).forEach(item=>rows.push(liveItemHtml(item,num++)));
+    (sec.subsections||[]).forEach(sub=>{rows.push(`<div style="font-size:12px;font-weight:600;color:var(--gray-600);padding:5px 0 3px 12px;border-left:3px solid var(--gray-300);margin:8px 0 4px">${esc(sub.title)}</div>`);(sub.items||[]).forEach(item=>rows.push(liveItemHtml(item,num++)));});
+  });
+  cont.innerHTML=rows.join('');
+}
+function liveItemHtml(item,num){const isActive=liveActive===item.id;const note=liveNotes[item.id]||'';return `<div class="live-item${isActive?' active-item':''}"><span class="live-num">${num}.</span><div class="live-content"><div class="live-title">${esc(item.title)}</div><div class="live-type-tag">${item.type||''}</div>${isActive?`<textarea class="live-note-input" placeholder="Notes for minutes..." rows="2" oninput="liveNotes['${item.id}']=this.value">${esc(note)}</textarea>`:(note?`<div class="live-saved-note">${esc(note)}</div>`:'')}</div><div style="display:flex;gap:6px;flex-shrink:0"><button class="btn btn-sm${isActive?' btn-primary':''}" onclick="setLiveActive('${item.id}')">${isActive?'● Active':'Set Active'}</button></div></div>`;}
+function setLiveActive(itemId){liveActive=liveActive===itemId?null:itemId;const m=meetings.find(x=>x.id===editingId);if(m)renderLiveAgenda(m);}
+function saveLiveToMinutes(){const m=meetings.find(x=>x.id===editingId);if(!m)return;m.rollCall=liveRC;m.itemNotes=liveNotes;saveMeetings();closeModal('modal-live');openMinutes(m.id);toast('Roll call saved — opening minutes');}
+
+// ══════════════════════════════════════
+// TEMPLATES
+// ══════════════════════════════════════
+function renderTemplates(){
+  document.getElementById('page-content').innerHTML=`
+    <div style="display:flex;flex-direction:column;gap:20px">
+      ${Object.entries(GROUPS).map(([key,grp])=>{const tpl=templates[key];const ic=tpl?countItems(tpl):0;return `<div class="card"><div class="card-header"><div style="display:flex;align-items:center;gap:10px"><span class="nav-dot nav-dot-${key}" style="width:10px;height:10px"></span><span class="card-title">${grp.name}</span>${tpl?`<span class="badge badge-${key}">${(tpl||[]).length} sections · ${ic} items</span>`:'<span style="font-size:12px;color:var(--gray-400)">No template</span>'}</div><div style="display:flex;gap:8px"><button class="btn btn-sm btn-primary" onclick="editTemplate('${key}')">✏️ ${tpl?'Edit':'Create'} Template</button>${tpl?`<button class="btn btn-sm btn-danger" onclick="deleteTemplate('${key}')">Delete</button>`:''}</div></div>${tpl?`<div class="card-body" style="padding:10px 20px"><div style="font-size:12px;color:var(--gray-400)">Sections: ${(tpl||[]).map(s=>esc(s.title)||'Untitled').join(' · ')}</div></div>`:''}</div>`;}).join('')}
+    </div>
+    <div style="margin-top:20px;padding:14px 16px;background:var(--blue-pale);border:1px solid var(--blue-light);border-radius:var(--radius);font-size:13px;color:var(--blue-mid)">💡 Templates auto-apply when creating a new meeting for that group.</div>`;
+}
+function editTemplate(group){
+  agendaSections=templates[group]?JSON.parse(JSON.stringify(templates[group])):[{id:uid(),title:'Call to Order',items:[{id:uid(),title:'Roll Call',desc:'',type:'Procedural',files:[]}],subsections:[]}];
+  editingId='tpl:'+group;
+  document.getElementById('agenda-modal-title').textContent=`Template — ${GROUPS[group].name}`;
+  document.getElementById('agenda-modal-sub').textContent='Applies to all new meetings for this group';
+  document.getElementById('agenda-footer').innerHTML=`<button class="btn" onclick="closeModal('modal-agenda')">Cancel</button><button class="btn btn-primary" onclick="saveTemplate('${group}')">Save Template</button>`;
+  swAgendaTab('builder');document.querySelectorAll('#agenda-tabs .tab').forEach((t,i)=>t.classList.toggle('active',i===0));
+  renderSections();openModal('modal-agenda');
+}
+function saveTemplate(group){templates[group]=JSON.parse(JSON.stringify(agendaSections));S.set('reep_templates',templates);closeModal('modal-agenda');renderTemplates();toast('Template saved');document.getElementById('agenda-footer').innerHTML=`<button class="btn" onclick="closeModal('modal-agenda')">Close</button><button class="btn btn-primary" onclick="saveAgenda()">Save Agenda</button>`;}
+function deleteTemplate(group){if(!confirm('Delete template?'))return;templates[group]=null;S.set('reep_templates',templates);renderTemplates();toast('Template deleted');}
+
+// ══════════════════════════════════════
+// MEMBERS (ADMIN)
+// ══════════════════════════════════════
+function renderMembers(){
+  document.getElementById('page-content').innerHTML=`
+    <div class="card">
+      <div class="card-header"><span class="card-title">All Members (${members.length})</span>
+        <select class="form-control" style="width:auto;padding:6px 10px;font-size:12px" onchange="filterMembers(this.value)">
+          <option value="">All Groups</option><option value="exec">Executive Committee</option><option value="board">Board of Directors</option><option value="ins">Insurance Advisory</option>
+        </select>
+      </div>
+      ${members.length?`<div style="overflow-x:auto"><table class="member-table"><thead><tr><th>Name</th><th>Email</th><th>Portal Access</th><th>Groups</th><th>Role</th><th></th></tr></thead><tbody id="mem-tbody">${memberRows(members)}</tbody></table></div>`:`
+        <div class="empty-state"><div class="empty-icon">👥</div><h3>No members yet</h3><p>Add members and set portal passwords so they can log in</p>
+          <div style="display:flex;gap:8px;justify-content:center"><button class="btn btn-primary" onclick="openMemberModal()">+ Add Member</button><button class="btn" onclick="document.getElementById('xl-input').click()">📥 Import Excel</button></div>
+        </div>`}
+    </div>
+    <div style="margin-top:14px;padding:12px 16px;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:var(--radius);font-size:12px;color:var(--gray-500)">
+      <strong>Member Portal Login:</strong> Members sign in at this same URL using their email + the portal password you set for them. Import columns: <code>First Name</code>, <code>Last Name</code>, <code>Email</code>, <code>Title</code>, <code>Role</code>, <code>Groups</code>
+    </div>`;
+}
+function filterMembers(group){const list=group?members.filter(m=>(m.groups||[]).includes(group)):members;const tbody=document.getElementById('mem-tbody');if(tbody)tbody.innerHTML=memberRows(list);}
+function memberRows(list){
+  return list.map(m=>`<tr>
+    <td style="display:flex;align-items:center"><div class="mem-av">${initials(m.first,m.last)}</div>${esc(m.first)} ${esc(m.last)}</td>
+    <td style="color:var(--blue-mid)">${esc(m.email||'')}</td>
+    <td>${m.password?`<span style="font-size:11px;color:var(--green);font-weight:500">✓ Password set</span>`:`<span style="font-size:11px;color:var(--gray-400)">No password</span>`}</td>
+    <td>${(m.groups||[]).map(g=>`<span class="badge badge-${g}" style="margin:1px">${GROUPS[g]?.name||g}</span>`).join('')}</td>
+    <td>${esc(m.role||'Member')}</td>
+    <td style="text-align:right"><button class="btn btn-sm btn-ghost" onclick="openMemberModal('${m.id}')">Edit</button><button class="btn btn-sm btn-danger" onclick="deleteMember('${m.id}')">Remove</button></td>
+  </tr>`).join('');
+}
+function openMemberModal(id){
+  const m=id?members.find(x=>x.id===id):null;
+  editingId=id||null;
+  document.getElementById('mem-modal-title').textContent=m?'Edit Member':'Add Member';
+  document.getElementById('mem-first').value=m?.first||'';
+  document.getElementById('mem-last').value=m?.last||'';
+  document.getElementById('mem-email').value=m?.email||'';
+  document.getElementById('mem-title').value=m?.title||'';
+  document.getElementById('mem-password').value=m?.password||'';
+  document.getElementById('mem-role').value=m?.role||'Member';
+  document.getElementById('mg-exec').checked=m?.groups?.includes('exec')||false;
+  document.getElementById('mg-board').checked=m?.groups?.includes('board')||false;
+  document.getElementById('mg-ins').checked=m?.groups?.includes('ins')||false;
+  openModal('modal-member');
+}
+function saveMember(){
+  const first=document.getElementById('mem-first').value.trim();
+  const last=document.getElementById('mem-last').value.trim();
+  if(!first||!last){alert('Please enter first and last name.');return;}
+  const grps=[];
+  if(document.getElementById('mg-exec').checked)grps.push('exec');
+  if(document.getElementById('mg-board').checked)grps.push('board');
+  if(document.getElementById('mg-ins').checked)grps.push('ins');
+  const data={first,last,email:document.getElementById('mem-email').value.trim(),title:document.getElementById('mem-title').value.trim(),password:document.getElementById('mem-password').value.trim(),role:document.getElementById('mem-role').value,groups:grps};
+  if(editingId&&members.find(m=>m.id===editingId)){Object.assign(members.find(m=>m.id===editingId),data);toast('Member updated');}
+  else{members.push({id:uid(),...data});toast('Member added');}
+  S.set('reep_members',members);closeModal('modal-member');renderMembers();
+}
+function deleteMember(id){if(!confirm('Remove this member?'))return;members=members.filter(m=>m.id!==id);S.set('reep_members',members);renderMembers();toast('Removed');}
+function handleExcelImport(files){
+  const file=files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'binary'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1});
+      if(rows.length<2){alert('No data found.');return;}
+      const h=rows[0].map(x=>String(x||'').toLowerCase().trim());
+      const fi=h.findIndex(x=>x.includes('first')),li=h.findIndex(x=>x.includes('last'));
+      if(fi<0||li<0){alert('Could not find "First Name" and "Last Name" columns.');return;}
+      const ei=h.findIndex(x=>x.includes('email')),ti=h.findIndex(x=>x.includes('title')||x.includes('org'));
+      const ri=h.findIndex(x=>x.includes('role')),gi=h.findIndex(x=>x.includes('group'));
+      const pi=h.findIndex(x=>x.includes('password')||x.includes('pass'));
+      let added=0,skipped=0;
+      rows.slice(1).forEach(row=>{
+        const first=String(row[fi]||'').trim(),last=String(row[li]||'').trim();
+        if(!first||!last){skipped++;return;}
+        const gs=gi>=0?String(row[gi]||'').toLowerCase():'';
+        const grps=[];
+        if(gs.includes('exec'))grps.push('exec');
+        if(gs.includes('board'))grps.push('board');
+        if(gs.includes('ins'))grps.push('ins');
+        members.push({id:uid(),first,last,email:ei>=0?String(row[ei]||'').trim():'',title:ti>=0?String(row[ti]||'').trim():'',role:ri>=0?String(row[ri]||'').trim()||'Member':'Member',password:pi>=0?String(row[pi]||'').trim():'',groups:grps});
+        added++;
+      });
+      S.set('reep_members',members);renderMembers();
+      toast(`Imported ${added} members${skipped?` (${skipped} skipped)`:''}`);
+    }catch(err){alert('Error: '+err.message);}
+  };
+  reader.readAsBinaryString(file);
+  document.getElementById('xl-input').value='';
+}
+
+// ══════════════════════════════════════
+// ADMIN SETTINGS
+// ══════════════════════════════════════
+function renderAdmin(){
+  document.getElementById('page-content').innerHTML=`
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-header"><span class="card-title">Admin Users (${adminUsers.length})</span></div>
+      <table class="member-table"><thead><tr><th>Username</th><th>Display Name</th><th></th></tr></thead>
+      <tbody>${adminUsers.map((u,i)=>`<tr><td style="font-family:monospace;font-size:13px">${esc(u.username)}</td><td>${esc(u.name)}</td><td style="text-align:right">${adminUsers.length>1?`<button class="btn btn-sm btn-danger" onclick="deleteAdminUser(${i})">Remove</button>`:'<span style="font-size:11px;color:var(--gray-400)">Last admin</span>'}</td></tr>`).join('')}</tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Organization Name</span></div>
+      <div class="card-body">
+        <div class="form-group"><input type="text" class="form-control" id="org-name" value="${esc(S.get('reep_org_name','REEP Joint Powers Authority'))}" style="max-width:420px"></div>
+        <button class="btn btn-primary btn-sm" onclick="S.set('reep_org_name',document.getElementById('org-name').value.trim());toast('Saved')">Save</button>
+      </div>
+    </div>`;
+}
+function saveAdminUser(){
+  const u=document.getElementById('au-user').value.trim(),p=document.getElementById('au-pass').value,n=document.getElementById('au-name').value.trim();
+  if(!u||!p||!n){alert('Fill in all fields.');return;}
+  if(adminUsers.find(a=>a.username===u)){alert('Username already exists.');return;}
+  adminUsers.push({username:u,password:p,name:n});
+  S.set('reep_admin_users',adminUsers);closeModal('modal-admin-user');renderAdmin();toast('Admin user added');
+  ['au-user','au-pass','au-name'].forEach(id=>document.getElementById(id).value='');
+}
+function deleteAdminUser(i){if(adminUsers[i].username===currentUser.username){alert("Can't remove your own account.");return;}if(!confirm('Remove?'))return;adminUsers.splice(i,1);S.set('reep_admin_users',adminUsers);renderAdmin();toast('Removed');}
+
+// ══════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function initials(f,l){return((f||'')[0]||'').toUpperCase()+((l||'')[0]||'').toUpperCase();}
+function fmtDate(d){if(!d)return'—';return new Date(d+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'long',day:'numeric',year:'numeric'});}
+function fmtTime(t){if(!t)return'';const[h,m]=t.split(':');const hr=parseInt(h);return`${hr>12?hr-12:hr||12}:${m} ${hr>=12?'PM':'AM'}`;}
+</script>
+</body>
+</html>
